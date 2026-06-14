@@ -1,0 +1,32 @@
+<Solution>
+  <Folder Name="/Applications/">
+    <Project Path="Application/GroundControlStation.Droid/GroundControlStation.Droid.csproj">
+      <Deploy />
+    </Project>
+    <Project Path="Application/GroundControlStation.iOS/GroundControlStation.iOS.csproj">
+      <Deploy />
+    </Project>
+    <Project Path="Application/GroundControlStation.Mac/GroundControlStation.Mac.csproj">
+      <Deploy />
+    </Project>
+    <Project Path="Application/GroundControlStation.WinUI/GroundControlStation.WinUI.csproj">
+      <Platform Project="x64" />
+    </Project>
+    <Project Path="Application/GroundControlStation/GroundControlStationApp.csproj" />
+  </Folder>
+  <Folder Name="/Domain/">
+    <Project Path="Domain/DroneGcs.Core/DroneGcs.Core.csproj" Id="62c30471-d174-47d5-96bb-481bb4fdcc5c" />
+    <Project Path="Domain/DroneGs.MavLink/DroneGs.MavLink.csproj" Id="1dfcfd73-9d07-4926-bd47-ed1595636b4b" />
+    <Project Path="Domain/DroneGcs.Console/DroneGcs.Console.csproj" Id="d6baefdb-be7c-417d-ab03-1f10abd95679" />
+    <Project Path="Domain/DroneGcs.Simulator/DroneGcs.Simulator.csproj" Id="1f2e0ea3-99a4-4a83-8122-a1183767caee" />
+    <Project Path="Domain/DroneGcs.Transport/DroneGcs.Transport.csproj" Id="9cc4adb0-4c71-4435-b9fd-c7ba6700387f" />
+  </Folder>
+  <Folder Name="/Solution Items/">
+    <File Path="ai.md" />
+    <File Path="Directory.Build.props" />
+    <File Path="Directory.Packages.props" />
+  </Folder>
+  <Folder Name="/Tests/">
+    <Project Path="Tests/DroneGcs.Test/DroneGcs.Test.csproj" Id="42ccfc4d-f872-41bb-b912-25c580c2cde1" />
+  </Folder>
+</Solution>

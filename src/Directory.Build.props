@@ -1,0 +1,28 @@
+<Project>
+	<PropertyGroup>
+
+		<ManagePackageVersionsCentrally>true</ManagePackageVersionsCentrally>
+
+		<Nullable>enable</Nullable>
+		<LangVersion>latest</LangVersion>
+		<ImplicitUsings>enable</ImplicitUsings>
+		<Authors>Karl Godtliebsen</Authors>
+		<ProductVersion>1.0.0.0</ProductVersion>
+		<Version>1.0.0.0</Version>
+		<ApplicationDisplayVersion>1.0</ApplicationDisplayVersion>
+		<ApplicationVersion>1</ApplicationVersion>
+
+		<ApplicationTitle>Ground Control Station</ApplicationTitle>
+
+		<ApplicationId>com.ardupilot.groundcontrolstation</ApplicationId>
+		<EnableNETAnalyzers>true</EnableNETAnalyzers>
+		<EnforceCodeStyleInBuild>true</EnforceCodeStyleInBuild>
+		<AnalysisLevel>latest</AnalysisLevel>
+		<AnalysisLevelSecurity>latest-recommended</AnalysisLevelSecurity>
+		<GenerateDocumentationFile>true</GenerateDocumentationFile>
+		<DocumentationFile>$(OutputPath)$(AssemblyName).xml</DocumentationFile>
+		<NoWarn>$(NoWarn);NU1608</NoWarn>
+
+	</PropertyGroup>
+
+</Project>

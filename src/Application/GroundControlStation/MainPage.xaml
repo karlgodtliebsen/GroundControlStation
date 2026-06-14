@@ -1,0 +1,30 @@
+﻿<?xml version="1.0" encoding="utf-8" ?>
+<uranium:UraniumContentPage  
+    xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+    xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+    x:Class="GroundControlStationApp.MainPage"
+    xmlns:model="clr-namespace:GroundControlStationApp"
+    xmlns:uranium="http://schemas.enisn-projects.io/dotnet/maui/uraniumui">
+
+    <!-- Set the BindingContext to the ViewModel -->
+    <uranium:UraniumContentPage.BindingContext>
+        <model:MainPageViewModel/>
+    </uranium:UraniumContentPage.BindingContext>
+
+
+    <uranium:GridLayout Margin="20"
+                        RowCount="2"
+                        ColumnCount="2" 
+                        ColumnSpacing="16" 
+                        RowSpacing="16"
+                        ColumnGridLength="120"
+                        RowGridLength="120">
+        <BoxView Color="Red" />
+        <BoxView Color="Green" />
+        <BoxView Color="Blue" />
+        <BoxView Color="Yellow" />
+    </uranium:GridLayout>
+
+
+</uranium:UraniumContentPage>
+

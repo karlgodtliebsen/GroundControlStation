@@ -1,0 +1,176 @@
+﻿namespace DroneGcs.Transport;
+
+/// <summary>
+/// Represents a MAVLink client that can send and receive data from a MAVLink transport.
+/// </summary>
+public sealed class MavLinkClient : IAsyncDisposable
+{
+    private readonly IMavLinkTransport transport;
+    private readonly int receiveBufferSize;
+
+    private CancellationTokenSource? cancellationTokenSource;
+    private Task? receiveTask;
+    private bool disposed;
+
+    /// <summary>
+    /// Occurs when data is received from the MAVLink transport.
+    /// </summary>
+    public event Func<MavLinkDataReceived, CancellationToken, ValueTask>? DataReceived;
+
+    /// <summary>
+    /// Gets a value indicating whether the MAVLink client is currently running and receiving data.
+    /// </summary>
+    public bool IsRunning => receiveTask is { IsCompleted: false };
+
+    /// <summary>
+    /// Gets a value indicating whether the MAVLink client is connected to the transport.
+    /// </summary>
+    public bool IsConnected => transport.IsConnected;
+
+    /// <summary>
+    /// Initializes a new instance of the <see cref="MavLinkClient"/> class.
+    /// </summary>
+    /// <param name="transport">The MAVLink transport to use for communication.</param>
+    /// <param name="receiveBufferSize">The size of the buffer used for receiving data.</param>
+    /// <exception cref="ArgumentNullException">Thrown if <paramref name="transport"/> is null.</exception>
+    /// <exception cref="ArgumentOutOfRangeException">Thrown if <paramref name="receiveBufferSize"/> is not positive.</exception>
+    public MavLinkClient(
+        IMavLinkTransport transport,
+        int receiveBufferSize = 512)
+    {
+        this.transport = transport ?? throw new ArgumentNullException(nameof(transport));
+
+        if (receiveBufferSize <= 0)
+        {
+            throw new ArgumentOutOfRangeException(nameof(receiveBufferSize), "Receive buffer size must be positive.");
+        }
+
+        this.receiveBufferSize = receiveBufferSize;
+    }
+
+    /// <summary>
+    /// Starts the MAVLink client and begins receiving data.
+    /// </summary>
+    /// <param name="cancellationToken">A token to cancel the operation.</param>
+    public async Task StartAsync(CancellationToken cancellationToken = default)
+    {
+        ThrowIfDisposed();
+
+        if (IsRunning)
+        {
+            return;
+        }
+
+        cancellationTokenSource = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
+
+        await transport.ConnectAsync(cancellationTokenSource.Token).ConfigureAwait(false);
+
+        receiveTask = Task.Run(() => ReceiveLoopAsync(cancellationTokenSource.Token), CancellationToken.None);
+    }
+
+    private async Task ReceiveLoopAsync(CancellationToken cancellationToken)
+    {
+        var buffer = new byte[receiveBufferSize];
+
+        try
+        {
+            while (!cancellationToken.IsCancellationRequested && transport.IsConnected)
+            {
+                var result = await transport.ReadAsync(buffer, cancellationToken).ConfigureAwait(false);
+
+                if (result.BytesRead <= 0)
+                {
+                    continue;
+                }
+
+                var copy = new byte[result.BytesRead];
+                buffer.AsMemory(0, result.BytesRead).CopyTo(copy);
+
+                var received = new MavLinkDataReceived(copy, result.RemoteEndpoint, DateTimeOffset.UtcNow);
+
+                var handler = DataReceived;
+
+                if (handler is not null)
+                {
+                    await handler(received, cancellationToken).ConfigureAwait(false);
+                }
+            }
+        }
+        catch (OperationCanceledException)
+        {
+            // Normal shutdown path.
+        }
+        catch (ObjectDisposedException)
+        {
+            // Normal when transport is closed while blocked in ReadAsync().
+        }
+        finally
+        {
+            await transport.DisconnectAsync(CancellationToken.None).ConfigureAwait(false);
+            //await transport.DisconnectAsync(cancellationToken).ConfigureAwait(false);
+        }
+    }
+
+    /// <summary>
+    /// Sends data to the MAVLink transport.
+    /// </summary>
+    /// <param name="data">The data to send.</param>
+    /// <param name="cancellationToken">A token to cancel the operation.</param>
+    /// <exception cref="InvalidOperationException">Thrown if the transport is not connected.</exception>
+    public async ValueTask SendAsync(ReadOnlyMemory<byte> data, CancellationToken cancellationToken = default)
+    {
+        ThrowIfDisposed();
+
+        if (!transport.IsConnected)
+        {
+            throw new InvalidOperationException("Transport is not connected.");
+        }
+
+        await transport.WriteAsync(data, cancellationToken).ConfigureAwait(false);
+    }
+
+    /// <summary>
+    /// Stops the MAVLink client and cancels any ongoing operations.
+    /// </summary>
+    public async Task StopAsync()
+    {
+        if (cancellationTokenSource is null)
+        {
+            return;
+        }
+
+        await cancellationTokenSource.CancelAsync().ConfigureAwait(false);
+
+        if (receiveTask is not null)
+        {
+            await receiveTask.ConfigureAwait(false);
+        }
+
+        cancellationTokenSource.Dispose();
+        cancellationTokenSource = null;
+        receiveTask = null;
+    }
+
+    /// <summary>
+    /// Disposes the MAVLink client and releases all resources.
+    /// </summary>
+    /// <returns></returns>
+    public async ValueTask DisposeAsync()
+    {
+        if (disposed)
+        {
+            return;
+        }
+
+        await StopAsync().ConfigureAwait(false);
+        await transport.DisposeAsync().ConfigureAwait(false);
+
+        disposed = true;
+        GC.SuppressFinalize(this);
+    }
+
+    private void ThrowIfDisposed()
+    {
+        ObjectDisposedException.ThrowIf(disposed, this);
+    }
+}
