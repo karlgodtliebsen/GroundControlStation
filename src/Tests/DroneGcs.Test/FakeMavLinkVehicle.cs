@@ -26,7 +26,6 @@ public sealed class FakeMavLinkVehicle : IAsyncDisposable
     public FakeMavLinkVehicle(string targetIp, int targetPort)
     {
         udpClient = new UdpClient();
-
         targetEndpoint = new IPEndPoint(IPAddress.Parse(targetIp), targetPort);
     }
 

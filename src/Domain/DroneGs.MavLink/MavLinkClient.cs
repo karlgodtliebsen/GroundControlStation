@@ -1,9 +1,11 @@
-﻿namespace DroneGcs.Transport;
+﻿using DroneGcs.Transport;
+
+namespace DroneGs.MavLink;
 
 /// <summary>
 /// Represents a MAVLink client that can send and receive data from a MAVLink transport.
 /// </summary>
-public sealed class MavLinkClient : IAsyncDisposable
+public sealed class MavLinkClient : IMavLinkClient
 {
     private readonly IMavLinkTransport transport;
     private readonly int receiveBufferSize;
@@ -34,9 +36,7 @@ public sealed class MavLinkClient : IAsyncDisposable
     /// <param name="receiveBufferSize">The size of the buffer used for receiving data.</param>
     /// <exception cref="ArgumentNullException">Thrown if <paramref name="transport"/> is null.</exception>
     /// <exception cref="ArgumentOutOfRangeException">Thrown if <paramref name="receiveBufferSize"/> is not positive.</exception>
-    public MavLinkClient(
-        IMavLinkTransport transport,
-        int receiveBufferSize = 512)
+    public MavLinkClient(IMavLinkTransport transport, int receiveBufferSize = 512)
     {
         this.transport = transport ?? throw new ArgumentNullException(nameof(transport));
 
@@ -103,6 +103,11 @@ public sealed class MavLinkClient : IAsyncDisposable
         catch (ObjectDisposedException)
         {
             // Normal when transport is closed while blocked in ReadAsync().
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Unexpected exception in ReceiveLoop: {ex}");
+            throw;
         }
         finally
         {

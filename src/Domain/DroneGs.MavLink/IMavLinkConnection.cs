@@ -1,4 +1,6 @@
-﻿namespace DroneGs.MavLink;
+﻿using DroneGs.MavLink.Messages;
+
+namespace DroneGs.MavLink;
 
 //Frame parser
 //Frame serializer
@@ -9,8 +11,15 @@
 /// <summary>
 /// Represents a connection to a MAVLink device.
 /// </summary>
-public interface IMavLinkConnection
+public interface IMavLinkConnection : IAsyncDisposable
 {
+    /// <summary>
+    /// Starts the MAVLink connection, allowing it to receive and process incoming data.
+    /// </summary>
+    /// <param name="cancellationToken">A token to monitor for cancellation requests.</param>
+    /// <returns>A task that represents the asynchronous start operation.</returns>
+    Task StartAsync(CancellationToken cancellationToken = default);
+
     /// <summary>
     /// Reads MAVLink frames from the connected device.
     /// </summary>
@@ -32,28 +41,21 @@ public interface IMavLinkConnection
     /// <param name="cancellationToken">A token to monitor for cancellation requests.</param>
     /// <returns>A task that represents the asynchronous send operation.</returns>
     Task SendAsync(MavLinkMessage message, CancellationToken cancellationToken);
-}
 
-public sealed record MavLinkFrame(
-    byte SystemId,
-    byte ComponentId,
-    uint MessageId,
-    byte Sequence,
-    ReadOnlyMemory<byte> RawBytes,
-    DateTimeOffset Timestamp);
+    /// <summary>
+    /// Sends raw MAVLink data to the connected device.
+    /// </summary>
+    /// <param name="data">The raw MAVLink data to send.</param>
+    /// <param name="cancellationToken">A token to monitor for cancellation requests.</param>
+    /// <returns>A task that represents the asynchronous send operation.</returns>
+    ValueTask SendRawAsync(ReadOnlyMemory<byte> data, CancellationToken cancellationToken = default);
+}
 
 //public abstract record MavLinkMessage(
 //    byte SystemId,
 //    byte ComponentId,
 //    uint MessageId,
 //    DateTimeOffset Timestamp);
-
-public sealed record MavLinkMessage(
-    byte SystemId,
-    byte ComponentId,
-    uint MessageId,
-    object Payload,
-    DateTimeOffset Timestamp);
 
 //public sealed record HeartbeatMessage(
 //    byte SystemId,

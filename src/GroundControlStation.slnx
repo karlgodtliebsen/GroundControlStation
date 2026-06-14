@@ -21,6 +21,9 @@
     <Project Path="Domain/DroneGcs.Simulator/DroneGcs.Simulator.csproj" Id="1f2e0ea3-99a4-4a83-8122-a1183767caee" />
     <Project Path="Domain/DroneGcs.Transport/DroneGcs.Transport.csproj" Id="9cc4adb0-4c71-4435-b9fd-c7ba6700387f" />
   </Folder>
+  <Folder Name="/Library/">
+    <Project Path="Library/Domain.Library/Domain.Library.csproj" />
+  </Folder>
   <Folder Name="/Solution Items/">
     <File Path="ai.md" />
     <File Path="Directory.Build.props" />

@@ -12,6 +12,10 @@
     <PackageReference Include="Microsoft.NET.Test.Sdk" />
     <PackageReference Include="xunit.v3" />
     <PackageReference Include="xunit.runner.visualstudio" />
+    <PackageReference Include="Microsoft.Extensions.Configuration" />
+    <PackageReference Include="Microsoft.Extensions.Configuration.Abstractions" />
+    <PackageReference Include="Microsoft.Extensions.DependencyInjection" />
+    <PackageReference Include="Microsoft.Extensions.DependencyInjection.Abstractions" />
   </ItemGroup>
 
   <ItemGroup>
@@ -19,11 +23,10 @@
   </ItemGroup>
 
   <ItemGroup>
-    <Folder Include="Configuration\" />
-  </ItemGroup>
-
-  <ItemGroup>
+    <ProjectReference Include="..\..\Domain\DroneGcs.Core\DroneGcs.Core.csproj" />
     <ProjectReference Include="..\..\Domain\DroneGcs.Transport\DroneGcs.Transport.csproj" />
+    <ProjectReference Include="..\..\Domain\DroneGs.MavLink\DroneGs.MavLink.csproj" />
+    <ProjectReference Include="..\..\Library\Domain.Library\Domain.Library.csproj" />
   </ItemGroup>
 
 </Project>
