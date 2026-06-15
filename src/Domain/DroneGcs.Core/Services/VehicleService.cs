@@ -1,4 +1,5 @@
 ﻿using DroneGcs.Core.Commands;
+using DroneGcs.Core.DomainEvents;
 using DroneGcs.Core.Models;
 
 namespace DroneGcs.Core.Services;
@@ -8,7 +9,8 @@ namespace DroneGcs.Core.Services;
 /// </summary>
 /// <param name="registry"></param>
 /// <param name="commandService"></param>
-public sealed class VehicleService(IVehicleRegistry registry, IVehicleCommandService commandService) : IVehicleService
+/// <param name="eventHub"></param>
+public sealed class VehicleService(IVehicleRegistry registry, IVehicleCommandService commandService, IDomainEventHub eventHub) : IVehicleService
 {
     /// <inheritdoc />
     public IReadOnlyCollection<VehicleState> GetVehicles()

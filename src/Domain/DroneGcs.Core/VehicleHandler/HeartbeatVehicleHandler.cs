@@ -1,4 +1,6 @@
 ﻿using DroneGcs.Core.Models;
+using DroneGcs.Core.Services;
+
 using DroneGs.MavLink.Messages;
 
 namespace DroneGcs.Core.VehicleHandler;
@@ -26,7 +28,7 @@ public sealed class HeartbeatVehicleHandler : IHeartbeatVehicleHandler
     {
         var vehicleId = new VehicleId(message.SystemId, message.ComponentId);
 
-        return vehicleRegistry.RegisterOrUpdateHeartbeat(
+        var result = vehicleRegistry.RegisterOrUpdateHeartbeat(
             vehicleId,
             message.CustomMode,
             message.VehicleType,
@@ -35,5 +37,7 @@ public sealed class HeartbeatVehicleHandler : IHeartbeatVehicleHandler
             message.SystemStatus,
             message.MavLinkVersion,
             message.ReceivedAt);
+
+        return result.Vehicle;
     }
 }

@@ -1,4 +1,5 @@
-﻿using DroneGcs.Core.VehicleHandler;
+﻿using DroneGcs.Core.DomainEvents;
+using DroneGcs.Core.VehicleHandler;
 
 using DroneGs.MavLink.Messages;
 using DroneGs.MavLink.Services;
@@ -13,12 +14,14 @@ namespace DroneGcs.Core.Services;
 /// <param name="positionHandler">The handler for position messages.</param>
 /// <param name="attitudeHandler">The handler for attitude messages.</param>
 /// <param name="batteryHandler">The handler for battery status messages.</param>
+/// <param name="eventHub"></param>
 public sealed class VehicleMessagePump(
     IMavLinkConnection connection,
     IHeartbeatVehicleHandler heartbeatHandler,
     IPositionVehicleHandler positionHandler,
     IAttitudeVehicleHandler attitudeHandler,
-    IBatteryVehicleHandler batteryHandler)
+    IBatteryVehicleHandler batteryHandler,
+    IDomainEventHub eventHub)
     : IVehicleMessagePump
 {
     /// <summary>

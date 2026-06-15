@@ -1,4 +1,4 @@
-﻿using DroneGcs.Core;
+﻿using DroneGcs.Core.Services;
 
 namespace DroneGcs.Test;
 
@@ -7,11 +7,15 @@ namespace DroneGcs.Test;
 /// </summary>
 public static class SimulatedVehicleStateExtensions
 {
-    public static VehicleSession ApplyTo(
-        this SimulatedVehicleState simulated,
-        IVehicleRegistry registry)
+    /// <summary>
+    /// 
+    /// </summary>
+    /// <param name="simulated"></param>
+    /// <param name="registry"></param>
+    /// <returns></returns>
+    public static VehicleSession ApplyTo(this SimulatedVehicleState simulated, IVehicleRegistry registry)
     {
-        var vehicle = registry.RegisterOrUpdateHeartbeat(
+        var vehicleRegistryResult = registry.RegisterOrUpdateHeartbeat(
             simulated.VehicleId,
             simulated.CustomMode,
             simulated.VehicleType,
@@ -25,26 +29,18 @@ public static class SimulatedVehicleStateExtensions
             simulated.Longitude is not null &&
             simulated.Altitude is not null)
         {
-            vehicle.ApplyPosition(
-                simulated.Latitude.Value,
-                simulated.Longitude.Value,
-                simulated.Altitude.Value);
+            vehicleRegistryResult.Vehicle.ApplyPosition(simulated.Latitude.Value, simulated.Longitude.Value, simulated.Altitude.Value);
         }
 
         if (simulated.Roll is not null &&
             simulated.Pitch is not null &&
             simulated.Yaw is not null)
         {
-            vehicle.ApplyAttitude(
-                simulated.Roll.Value,
-                simulated.Pitch.Value,
-                simulated.Yaw.Value);
+            vehicleRegistryResult.Vehicle.ApplyAttitude(simulated.Roll.Value, simulated.Pitch.Value, simulated.Yaw.Value);
         }
 
-        vehicle.ApplyBattery(
-            simulated.BatteryRemaining,
-            simulated.BatteryVoltage);
+        vehicleRegistryResult.Vehicle.ApplyBattery(simulated.BatteryRemaining, simulated.BatteryVoltage);
 
-        return vehicle;
+        return vehicleRegistryResult.Vehicle;
     }
 }

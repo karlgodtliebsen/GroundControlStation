@@ -13,7 +13,7 @@ namespace Domain.Library.EventHub;
 /// 
 /// </summary>
 /// <param name="logger"></param>
-public sealed class EventHub(ILogger<EventHub> logger) : IEventHub
+public class EventHub(ILogger<EventHub> logger) : IEventHub
 {
     private readonly ConcurrentDictionary<string, IList<Action>> subscribers = new();
     private readonly ConcurrentDictionary<string, IList<Delegate>> genericDataSubscribers = new();
@@ -382,47 +382,8 @@ public sealed class EventHub(ILogger<EventHub> logger) : IEventHub
     }
 
     /// <inheritdoc/>
-    public IDisposable SubscribeAsync(string eventName, Func<DomainEvent, CancellationToken, Task> handler)
+    public IDisposable SubscribeAsync(string eventName, Func<IDomainEvent, CancellationToken, Task> handler)
     {
-        return SubscribeAsync<DomainEvent>(eventName, handler);
-    }
-
-
-    /// <inheritdoc/>
-    public IDisposable SubscribeDomainEventAsync<T>(Func<DomainEvent, CancellationToken, Task> handler) where T : DomainEvent
-    {
-        var eventName = typeof(T).FullName!;
-        return SubscribeAsync<DomainEvent>(eventName, handler);
-    }
-
-
-    /// <inheritdoc/>
-    public IDisposable SubscribeDomainEvent<T>(Action<DomainEvent> handler) where T : DomainEvent
-    {
-        var eventName = typeof(T).FullName!;
-        return Subscribe<DomainEvent>(eventName, handler);
-    }
-
-    /// <inheritdoc/>
-    public async Task PublishDomainEventAsync(DomainEvent data, CancellationToken cancellationToken = default)
-    {
-        var eventName = data.Name;
-        var key = KeyGenerator.GetEventKey<DomainEvent>(eventName);
-
-        await PublishAsync<DomainEvent>(key, eventName, data, cancellationToken);
-        eventName = data.GetType().FullName!;
-        await PublishAsync(eventName, data, cancellationToken);
-    }
-
-    /// <inheritdoc/>
-    public void PublishDomainEvent(DomainEvent data)
-    {
-        var eventName = data.Name;
-        var key = KeyGenerator.GetEventKey<DomainEvent>(eventName);
-
-        Publish<DomainEvent>(key, data);
-
-        eventName = data.GetType().FullName!;
-        Publish(eventName, data);
+        return SubscribeAsync<IDomainEvent>(eventName, handler);
     }
 }

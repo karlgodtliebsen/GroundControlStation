@@ -128,38 +128,5 @@ public interface IEventHub
     /// <param name="eventName"></param>
     /// <param name="action"></param>
     /// <returns></returns>
-    IDisposable SubscribeAsync(string eventName, Func<DomainEvent, CancellationToken, Task> action);
-
-
-    /// <summary>
-    /// Subscribes For the DomainEvent specified Func signature
-    /// </summary>
-    /// <param name="handler"></param>
-    /// <typeparam name="T"></typeparam>
-    /// <returns></returns>
-    IDisposable SubscribeDomainEventAsync<T>(Func<DomainEvent, CancellationToken, Task> handler) where T : DomainEvent;
-
-    /// <summary>
-    /// Subscribes For the DomainEvent specified Func signature
-    /// </summary>
-    /// <param name="handler"></param>
-    /// <typeparam name="T"></typeparam>
-    /// <returns></returns>
-    IDisposable SubscribeDomainEvent<T>(Action<DomainEvent> handler) where T : DomainEvent;
-
-    /// <summary>
-    /// Publish DomainEvent Async
-    /// </summary>
-    /// <param name="data"></param>
-    /// <param name="cancellationToken"></param>
-    /// <returns></returns>
-    Task PublishDomainEventAsync(DomainEvent data, CancellationToken cancellationToken = default);
-
-
-    /// <summary>
-    /// Publish DomainEvent
-    /// </summary>
-    /// <param name="data"></param>
-    /// <returns></returns>
-    void PublishDomainEvent(DomainEvent data);
+    IDisposable SubscribeAsync(string eventName, Func<IDomainEvent, CancellationToken, Task> action);
 }

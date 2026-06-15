@@ -1,0 +1,120 @@
+﻿using Domain.Library.Configuration;
+using Domain.Library.EventHub;
+using Domain.Library.EventHub.Events;
+
+using DroneGcs.Core.DomainEvents;
+using DroneGcs.Core.Models;
+using DroneGcs.Core.Services;
+using DroneGcs.Test.LibraryTests;
+
+using FluentAssertions;
+
+using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.DependencyInjection.Extensions;
+using Microsoft.Extensions.Logging;
+
+namespace DroneGcs.Test.DomainEventsTests;
+
+/// <summary>
+/// TestOfEventHub
+/// </summary>
+public class TestOfDomainEventHub
+{
+    private readonly IServiceProvider serviceProvider;
+    private readonly CancellationToken cancellationToken = TestContext.Current.CancellationToken;
+
+    /// <summary>
+    /// 
+    /// </summary>
+    public TestOfDomainEventHub()
+    {
+        var logger = NSubstitute.Substitute.For<ILogger<EventHub>>();
+        IServiceCollection services = new ServiceCollection();
+        services.AddEventHubServices();
+        services.TryAddSingleton<IDomainEventHub, DomainEventHub>();
+        services.AddSingleton<ILogger<EventHub>>(logger);
+        serviceProvider = services.BuildServiceProvider();
+    }
+
+    /// <summary>
+    /// 
+    /// </summary>
+    [Fact]
+    public async Task Verify_DomainEvent_Async_Publish_And_Subscription_Is_Connected()
+    {
+        var messageReceived = new TaskCompletionSource<bool>();
+
+        var eventHub = serviceProvider.GetRequiredService<IDomainEventHub>();
+        var eventData = new EventData { Message = "hello universe" };
+        var metaData = new MetaData { Actor = "Karl", Source = "From Application" };
+        var domainEvent = new DomainEvent<EventData, MetaData>("testing", eventData, metaData);
+
+        var disposable = eventHub.SubscribeDomainEventAsync<DomainEvent<EventData, MetaData>>((m, ct) =>
+        {
+            messageReceived.SetResult(true);
+            return Task.CompletedTask;
+        });
+
+
+        await eventHub.PublishDomainEventAsync(domainEvent, cancellationToken);
+
+        await Task.WhenAny(messageReceived.Task, Task.Delay(TimeSpan.FromMinutes(1), cancellationToken));
+        messageReceived.Task.IsCompleted.Should().BeTrue("DomainEvent was received in the expected time frame.");
+        disposable.Dispose();
+    }
+
+
+    /// <summary>
+    /// 
+    /// </summary>
+    [Fact]
+    public void Verify_DomainEvent_Publish_And_Subscription_Is_Connected()
+    {
+        var messageReceived = new TaskCompletionSource<bool>();
+
+        var eventHub = serviceProvider.GetRequiredService<IDomainEventHub>();
+        var eventData = new EventData { Message = "hello universe" };
+        var metaData = new MetaData { Actor = "Karl", Source = "From Application" };
+        var domainEvent = new DomainEvent<EventData, MetaData>("testing", eventData, metaData);
+
+        var disposable = eventHub.SubscribeDomainEvent<DomainEvent<EventData, MetaData>>((m) =>
+        {
+            messageReceived.SetResult(true);
+            return;
+        });
+
+
+        eventHub.PublishDomainEvent(domainEvent);
+
+        Task.WhenAny(messageReceived.Task, Task.Delay(TimeSpan.FromMinutes(1), cancellationToken));
+        messageReceived.Task.IsCompleted.Should().BeTrue("DomainEvent was received in the expected time frame.");
+        disposable.Dispose();
+    }
+
+    /// <summary>
+    /// Verifies that a VehicleRegistered event is published when the first heartbeat is received.
+    /// </summary>
+    [Fact]
+    public void Should_Publish_VehicleRegistered_When_First_Heartbeat_Is_Received()
+    {
+        var logger = NSubstitute.Substitute.For<ILogger<EventHub>>();
+
+        var eventHub = new CapturingDomainEventHub(logger);
+        var registry = new VehicleRegistry(eventHub);
+
+        registry.RegisterOrUpdateHeartbeat(
+            new VehicleId(1, 1),
+            0,
+            2,
+            3,
+            0,
+            4,
+            3,
+            DateTimeOffset.UtcNow);
+
+        Assert.Contains(
+            eventHub.Events,
+            e => e is VehicleRegistered registered
+                 && registered.VehicleId == new VehicleId(1, 1));
+    }
+}

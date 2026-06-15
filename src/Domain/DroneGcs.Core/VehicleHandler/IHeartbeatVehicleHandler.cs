@@ -1,4 +1,6 @@
-﻿using DroneGs.MavLink.Messages;
+﻿using DroneGcs.Core.Services;
+
+using DroneGs.MavLink.Messages;
 
 namespace DroneGcs.Core.VehicleHandler;
 

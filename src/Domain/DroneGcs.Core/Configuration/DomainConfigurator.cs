@@ -2,6 +2,7 @@
 using Domain.Library.Factory.Domain.Abstractions;
 
 using DroneGcs.Core.Commands;
+using DroneGcs.Core.DomainEvents;
 using DroneGcs.Core.Services;
 using DroneGcs.Core.VehicleHandler;
 
@@ -33,6 +34,7 @@ public static class DomainConfigurator
         services.TryAddSingleton<IAttitudeVehicleHandler, AttitudeVehicleHandler>();
         services.TryAddSingleton<IBatteryVehicleHandler, BatteryVehicleHandler>();
         services.TryAddSingleton<IPositionVehicleHandler, PositionVehicleHandler>();
+        services.TryAddSingleton<IDomainEventHub, DomainEventHub>();
         services.AddDebugLogging();
         return services;
     }

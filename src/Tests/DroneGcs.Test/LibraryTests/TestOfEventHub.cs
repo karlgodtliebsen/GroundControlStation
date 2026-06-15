@@ -20,6 +20,9 @@ public class TestOfEventHub
     private readonly IServiceProvider serviceProvider;
     private readonly CancellationToken cancellationToken = TestContext.Current.CancellationToken;
 
+    /// <summary>
+    /// 
+    /// </summary>
     public TestOfEventHub()
     {
         var logger = NSubstitute.Substitute.For<ILogger<EventHub>>();
@@ -676,71 +679,4 @@ public class TestOfEventHub
         count.Should().Be(200);
         disposables.Dispose();
     }
-
-
-    /// <summary>
-    /// 
-    /// </summary>
-    [Fact]
-    public async Task Verify_DomainEvent_Async_Publish_And_Subscription_Is_Connected()
-    {
-        var messageReceived = new TaskCompletionSource<bool>();
-
-        var eventHub = serviceProvider.GetRequiredService<IEventHub>();
-        var eventData = new EventData { Message = "hello universe" };
-        var metaData = new MetaData { Actor = "Karl", Source = "From Application" };
-        var domainEvent = new DomainEvent<EventData, MetaData>("testing", eventData, metaData);
-
-        var disposable = eventHub.SubscribeDomainEventAsync<DomainEvent<EventData, MetaData>>((m, ct) =>
-        {
-            messageReceived.SetResult(true);
-            return Task.CompletedTask;
-        });
-
-
-        await eventHub.PublishDomainEventAsync(domainEvent, cancellationToken);
-
-        await Task.WhenAny(messageReceived.Task, Task.Delay(TimeSpan.FromMinutes(1), cancellationToken));
-        messageReceived.Task.IsCompleted.Should().BeTrue("DomainEvent was received in the expected time frame.");
-        disposable.Dispose();
-    }
-
-
-    /// <summary>
-    /// 
-    /// </summary>
-    [Fact]
-    public void Verify_DomainEvent_Publish_And_Subscription_Is_Connected()
-    {
-        var messageReceived = new TaskCompletionSource<bool>();
-
-        var eventHub = serviceProvider.GetRequiredService<IEventHub>();
-        var eventData = new EventData { Message = "hello universe" };
-        var metaData = new MetaData { Actor = "Karl", Source = "From Application" };
-        var domainEvent = new DomainEvent<EventData, MetaData>("testing", eventData, metaData);
-
-        var disposable = eventHub.SubscribeDomainEvent<DomainEvent<EventData, MetaData>>((m) =>
-        {
-            messageReceived.SetResult(true);
-            return;
-        });
-
-
-        eventHub.PublishDomainEvent(domainEvent);
-
-        Task.WhenAny(messageReceived.Task, Task.Delay(TimeSpan.FromMinutes(1), cancellationToken));
-        messageReceived.Task.IsCompleted.Should().BeTrue("DomainEvent was received in the expected time frame.");
-        disposable.Dispose();
-    }
-}
-
-/// <summary>
-/// 
-/// </summary>
-public class EventData()
-{
-    /// <summary>
-    /// 
-    /// </summary>
-    public required string Message { get; init; } = null!;
 }

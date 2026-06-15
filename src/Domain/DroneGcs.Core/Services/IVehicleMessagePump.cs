@@ -1,4 +1,4 @@
-﻿namespace DroneGcs.Core;
+﻿namespace DroneGcs.Core.Services;
 
 /// <summary>
 /// Represents a message pump that reads messages from a vehicle connection and handles them.

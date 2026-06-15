@@ -5,6 +5,7 @@ using Domain.Library.Factory.Domain.Abstractions;
 
 using DroneGcs.Core;
 using DroneGcs.Core.Models;
+using DroneGcs.Core.Services;
 using DroneGcs.Core.VehicleHandler;
 using DroneGcs.Test.Configuration;
 using DroneGcs.Transport;
@@ -341,7 +342,7 @@ public class VehicleTests
 
         var receivedAt = DateTimeOffset.UtcNow;
 
-        var vehicle = registry.RegisterOrUpdateHeartbeat(
+        var vehicleRegistryResult = registry.RegisterOrUpdateHeartbeat(
             new VehicleId(1, 1),
             0,
             2,
@@ -353,9 +354,8 @@ public class VehicleTests
 
         registry.UpdateConnectionStates(receivedAt.AddSeconds(3), TimeSpan.FromSeconds(2), TimeSpan.FromSeconds(5));
 
-        Assert.Equal(
-            VehicleConnectionState.Stale,
-            vehicle.State.ConnectionState);
+        Assert.Equal(VehicleConnectionState.Stale,
+            vehicleRegistryResult.Vehicle.State.ConnectionState);
     }
 
     /// <summary>
@@ -370,7 +370,7 @@ public class VehicleTests
 
         var receivedAt = DateTimeOffset.UtcNow;
 
-        var vehicle = registry.RegisterOrUpdateHeartbeat(
+        var vehicleRegistryResult = registry.RegisterOrUpdateHeartbeat(
             new VehicleId(1, 1),
             0,
             2,
@@ -387,7 +387,7 @@ public class VehicleTests
 
         Assert.Equal(
             VehicleConnectionState.Offline,
-            vehicle.State.ConnectionState);
+            vehicleRegistryResult.Vehicle.State.ConnectionState);
     }
 
     /// <summary>
@@ -404,7 +404,7 @@ public class VehicleTests
         var receivedAt = DateTimeOffset.UtcNow;
         var vehicleId = new VehicleId(1, 1);
 
-        var vehicle = registry.RegisterOrUpdateHeartbeat(
+        var vehicleRegistryResult = registry.RegisterOrUpdateHeartbeat(
             vehicleId,
             0,
             2,
@@ -418,7 +418,7 @@ public class VehicleTests
 
         Assert.Equal(
             VehicleConnectionState.Offline,
-            vehicle.State.ConnectionState);
+            vehicleRegistryResult.Vehicle.State.ConnectionState);
 
         registry.RegisterOrUpdateHeartbeat(
             vehicleId,
@@ -432,7 +432,7 @@ public class VehicleTests
 
         Assert.Equal(
             VehicleConnectionState.Online,
-            vehicle.State.ConnectionState);
+            vehicleRegistryResult.Vehicle.State.ConnectionState);
     }
 
     /// <summary>
@@ -635,10 +635,16 @@ public class VehicleTests
         Assert.Equal(VehicleMode.Guided, vehicle.State.Mode);
     }
 
+    /// <summary>
+    /// 
+    /// </summary>
     [Fact]
     public void Should_Update_Position()
     {
-        var vehicle = CreateVehicleSession();
+        var services = TestConfigurator.AddTestConfiguration().BuildServiceProvider();
+        services.UseTestConfiguration();
+        var eventHub = services.GetRequiredService<IEventHub>();
+        var vehicle = CreateVehicleSession(eventHub);
 
         vehicle.ApplyPosition(
             56.1629,
@@ -651,15 +657,18 @@ public class VehicleTests
     }
 
 
+    /// <summary>
+    /// 
+    /// </summary>
     [Fact]
     public void Should_Update_Attitude()
     {
-        var vehicle = CreateVehicleSession();
+        var services = TestConfigurator.AddTestConfiguration().BuildServiceProvider();
+        services.UseTestConfiguration();
+        var eventHub = services.GetRequiredService<IEventHub>();
+        var vehicle = CreateVehicleSession(eventHub);
 
-        vehicle.ApplyAttitude(
-            0.1,
-            -0.2,
-            1.5);
+        vehicle.ApplyAttitude(0.1, -0.2, 1.5);
 
         Assert.Equal(0.1, vehicle.State.Roll);
         Assert.Equal(-0.2, vehicle.State.Pitch);
@@ -667,21 +676,25 @@ public class VehicleTests
     }
 
 
+    /// <summary>
+    /// 
+    /// </summary>
     [Fact]
     public void Should_Update_Battery()
     {
-        var vehicle = CreateVehicleSession();
+        var services = TestConfigurator.AddTestConfiguration().BuildServiceProvider();
+        services.UseTestConfiguration();
+        var eventHub = services.GetRequiredService<IEventHub>();
+        var vehicle = CreateVehicleSession(eventHub);
 
-        vehicle.ApplyBattery(
-            87,
-            11.4f);
+        vehicle.ApplyBattery(87, 11.4f);
 
         Assert.Equal(87, vehicle.State.BatteryRemaining);
         Assert.Equal(11.4f, vehicle.State.BatteryVoltage);
     }
 
 
-    private static VehicleSession CreateVehicleSession()
+    private static VehicleSession CreateVehicleSession(IEventHub eventHub)
     {
         var state = new VehicleState(
             new VehicleId(1, 1),

@@ -1,4 +1,4 @@
-﻿namespace DroneGcs.Core;
+﻿namespace DroneGcs.Core.Services;
 
 /// <summary>
 /// Monitors the connection state of vehicles.

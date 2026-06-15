@@ -1,6 +1,7 @@
-﻿using DroneGcs.Core.Models;
+﻿using DroneGcs.Core.DomainEvents;
+using DroneGcs.Core.Models;
 
-namespace DroneGcs.Core;
+namespace DroneGcs.Core.Services;
 
 /// <summary>
 /// Represents a session for a vehicle, managing its state and handling updates.
@@ -27,11 +28,13 @@ public sealed class VehicleSession(VehicleState initialState)
     /// <param name="now">The current date and time.</param>
     /// <param name="staleAfter">The time span after which the vehicle is considered stale.</param>
     /// <param name="offlineAfter">The time span after which the vehicle is considered offline.</param>
-    public void UpdateConnectionState(DateTimeOffset now, TimeSpan staleAfter, TimeSpan offlineAfter)
+    public VehicleConnectionStateChanged? UpdateConnectionState(DateTimeOffset now, TimeSpan staleAfter, TimeSpan offlineAfter)
     {
+        var previousState = state.ConnectionState;
+
         var age = now - state.LastHeartbeatAt;
 
-        var connectionState =
+        var currentState =
             age > offlineAfter
                 ? VehicleConnectionState.Offline
                 : age > staleAfter
@@ -40,8 +43,16 @@ public sealed class VehicleSession(VehicleState initialState)
 
         state = state with
         {
-            ConnectionState = connectionState
+            ConnectionState = currentState
         };
+
+        if (previousState == currentState)
+        {
+            return null;
+        }
+
+        var stateChanged = new VehicleConnectionStateChanged((state.VehicleId, previousState, currentState, now));
+        return stateChanged;
     }
 
 

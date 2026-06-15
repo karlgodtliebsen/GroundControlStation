@@ -1,14 +1,13 @@
-﻿using Domain.Library.EventHub.Abstractions;
-
-using DroneGcs.Core.DomainEvents;
+﻿using DroneGcs.Core.DomainEvents;
 using DroneGcs.Core.Models;
+
 
 namespace DroneGcs.Core.Services;
 
 /// <summary>
 /// Manages the registration and state of vehicles.
 /// </summary>
-public sealed class VehicleRegistry(IEventHub eventHub) : IVehicleRegistry
+public sealed class VehicleRegistry(IDomainEventHub eventHub) : IVehicleRegistry
 {
     private readonly Dictionary<VehicleId, VehicleSession> vehicles = [];
 
@@ -27,12 +26,20 @@ public sealed class VehicleRegistry(IEventHub eventHub) : IVehicleRegistry
     public IReadOnlyCollection<VehicleSession> Vehicles => vehicles.Values.ToArray();
 
     /// <inheritdoc />
-    public void UpdateConnectionStates(DateTimeOffset now, TimeSpan staleAfter, TimeSpan offlineAfter)
+    public VehicleUpdateConnectionStateResult UpdateConnectionStates(DateTimeOffset now, TimeSpan staleAfter, TimeSpan offlineAfter)
     {
+        var result = new List<VehicleSession>();
         foreach (var vehicle in vehicles.Values)
         {
-            vehicle.UpdateConnectionState(now, staleAfter, offlineAfter);
+            var stateChanged = vehicle.UpdateConnectionState(now, staleAfter, offlineAfter);
+            eventHub.PublishDomainEvent(new VehicleStateUpdated(vehicle.State));
+            if (stateChanged != null)
+            {
+                eventHub.PublishDomainEvent(stateChanged);
+            }
         }
+
+        return new VehicleUpdateConnectionStateResult(result);
     }
 
     /// <summary>
@@ -47,7 +54,7 @@ public sealed class VehicleRegistry(IEventHub eventHub) : IVehicleRegistry
     /// <param name="mavLinkVersion"></param>
     /// <param name="receivedAt">The timestamp when the heartbeat was received.</param>
     /// <returns>The updated or newly registered vehicle session.</returns>
-    public VehicleSession RegisterOrUpdateHeartbeat(
+    public VehicleRegistryResult RegisterOrUpdateHeartbeat(
         VehicleId vehicleId,
         uint customMode,
         byte vehicleType,
@@ -94,8 +101,8 @@ public sealed class VehicleRegistry(IEventHub eventHub) : IVehicleRegistry
             mavLinkVersion,
             receivedAt);
 
-        //eventHub.PublishDomainEvent<VehicleRegistered>("", new VehicleRegistered(vehicleId));
-        eventHub.Publish(new VehicleRegistered(vehicleId));
-        return session;
+
+        eventHub.PublishDomainEvent(new VehicleRegistered(vehicleId));
+        return new VehicleRegistryResult(session);
     }
 }

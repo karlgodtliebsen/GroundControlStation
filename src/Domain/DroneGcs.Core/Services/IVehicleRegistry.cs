@@ -1,6 +1,6 @@
 ﻿using DroneGcs.Core.Models;
 
-namespace DroneGcs.Core;
+namespace DroneGcs.Core.Services;
 
 /// <summary>
 /// Defines the contract for a vehicle registry, which manages the collection of vehicle sessions and handles heartbeat updates.
@@ -25,7 +25,7 @@ public interface IVehicleRegistry
     /// <param name="now">The current date and time.</param>
     /// <param name="staleAfter">The time span after which a vehicle is considered stale.</param>
     /// <param name="offlineAfter">The time span after which a vehicle is considered offline.</param>
-    void UpdateConnectionStates(DateTimeOffset now, TimeSpan staleAfter, TimeSpan offlineAfter);
+    VehicleUpdateConnectionStateResult UpdateConnectionStates(DateTimeOffset now, TimeSpan staleAfter, TimeSpan offlineAfter);
 
     /// <summary>
     /// Registers a new vehicle or updates an existing vehicle's state based on a received heartbeat message. 
@@ -39,7 +39,7 @@ public interface IVehicleRegistry
     /// <param name="mavLinkVersion">The MAVLink version of the vehicle.</param>
     /// <param name="receivedAt">The timestamp when the heartbeat was received.</param>
     /// <returns>The updated or newly registered vehicle session.</returns>
-    VehicleSession RegisterOrUpdateHeartbeat(
+    VehicleRegistryResult RegisterOrUpdateHeartbeat(
         VehicleId vehicleId,
         uint customMode,
         byte vehicleType,

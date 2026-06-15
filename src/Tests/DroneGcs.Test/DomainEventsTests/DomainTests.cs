@@ -1,11 +1,10 @@
-﻿using DroneGcs.Core;
-using DroneGcs.Core.Models;
+﻿using DroneGcs.Core.Models;
 using DroneGcs.Core.Services;
 using DroneGcs.Test.Configuration;
 
 using Microsoft.Extensions.DependencyInjection;
 
-namespace DroneGcs.Test;
+namespace DroneGcs.Test.DomainEventsTests;
 
 /// <summary>
 /// Tests for the domain layer implementations.

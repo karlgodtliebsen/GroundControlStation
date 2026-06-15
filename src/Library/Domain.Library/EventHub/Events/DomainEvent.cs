@@ -1,9 +1,20 @@
 ﻿namespace Domain.Library.EventHub.Events;
 
+public interface IDomainEvent
+{
+    MetaData GetMetaData();
+    object? Payload { get; }
+    string Name { get; }
+
+    T? TryGetMetaData<T>() where T : MetaData;
+
+    T? TryGetData<T>() where T : class;
+}
+
 /// <summary>
 /// 
 /// </summary>
-public class DomainEvent : Event
+public class DomainEvent : Event, IDomainEvent
 {
     public DomainEvent(string name) : base(name, null, new MetaData())
     {
