@@ -9,10 +9,12 @@ using DroneGcs.Test.Configuration;
 using DroneGcs.Transport;
 
 using DroneGs.MavLink;
+using DroneGs.MavLink.Client;
 using DroneGs.MavLink.Commands;
 using DroneGs.MavLink.Decoding;
 using DroneGs.MavLink.Encoding;
 using DroneGs.MavLink.Messages;
+using DroneGs.MavLink.Services;
 
 using Microsoft.Extensions.DependencyInjection;
 
@@ -142,6 +144,9 @@ public class VehicleTests
         Assert.Equal(81, vehicle2.State.BaseMode);
     }
 
+    /// <summary>
+    /// Tests that a vehicle is registered when the message pump receives a heartbeat message.
+    /// </summary>
     [Fact]
     public async Task Should_Register_Vehicle_When_Message_Pump_Receives_Heartbeat()
     {
@@ -158,7 +163,6 @@ public class VehicleTests
             14550, "127.0.0.1", 14551);
 
         var registry = services.GetRequiredService<IVehicleRegistry>();
-        var handler = services.GetRequiredService<IHeartbeatVehicleHandler>();
 
         await using var client =
             domainFactory.Create<IMavLinkClient, IMavLinkTransport>(transport);
@@ -171,9 +175,14 @@ public class VehicleTests
 
         await connection.StartAsync(TestContext.Current.CancellationToken);
 
-        var pump = domainFactory.Create<IVehicleMessagePump, IMavLinkConnection, IHeartbeatVehicleHandler>(
+
+        var pump = domainFactory.Create<IVehicleMessagePump, IMavLinkConnection,
+            IHeartbeatVehicleHandler, IPositionVehicleHandler, IAttitudeVehicleHandler, IBatteryVehicleHandler>(
             connection,
-            handler);
+            services.GetRequiredService<IHeartbeatVehicleHandler>(),
+            services.GetRequiredService<IPositionVehicleHandler>(),
+            services.GetRequiredService<IAttitudeVehicleHandler>(),
+            services.GetRequiredService<IBatteryVehicleHandler>());
 
         var pumpTask = pump.StartAsync(TestContext.Current.CancellationToken);
 
@@ -193,6 +202,127 @@ public class VehicleTests
         Assert.Contains(
             registry.Vehicles,
             vehicle => vehicle.Id == new VehicleId(1, 1));
+    }
+
+    /// <summary>
+    /// Tests that a vehicle's position is updated when a GlobalPositionInt message is received.
+    /// </summary>
+    [Fact]
+    public void Should_Update_Vehicle_Position_From_GlobalPositionInt_Message()
+    {
+        var services = TestConfigurator.AddTestConfiguration().BuildServiceProvider();
+        services.UseTestConfiguration();
+        var registry = services.GetRequiredService<IVehicleRegistry>();
+        var domainFactory = services.GetRequiredService<IDomainFactory>();
+
+        var vehicleId = new VehicleId(1, 1);
+
+        registry.RegisterOrUpdateHeartbeat(
+            vehicleId,
+            0,
+            2,
+            3,
+            0,
+            4,
+            3,
+            DateTimeOffset.UtcNow);
+
+        var handler = domainFactory.Create<IPositionVehicleHandler, IVehicleRegistry>(registry);
+
+        handler.Handle(
+            new GlobalPositionIntMessage(
+                1,
+                1,
+                56.1629,
+                10.2039,
+                12.5,
+                DateTimeOffset.UtcNow));
+
+        var vehicle = registry.GetRequired(vehicleId);
+
+        Assert.Equal(56.1629, vehicle.State.Latitude);
+        Assert.Equal(10.2039, vehicle.State.Longitude);
+        Assert.Equal(12.5, vehicle.State.Altitude);
+    }
+
+    /// <summary>
+    /// Tests that a vehicle's battery is updated when a SysStatusMessage is received.
+    /// </summary>
+    [Fact]
+    public void Should_Update_Battery_From_SysStatusMessage_Message()
+    {
+        var services = TestConfigurator.AddTestConfiguration().BuildServiceProvider();
+        services.UseTestConfiguration();
+        var registry = services.GetRequiredService<IVehicleRegistry>();
+        var domainFactory = services.GetRequiredService<IDomainFactory>();
+
+        var vehicleId = new VehicleId(1, 1);
+
+        registry.RegisterOrUpdateHeartbeat(
+            vehicleId,
+            0,
+            2,
+            3,
+            0,
+            4,
+            3,
+            DateTimeOffset.UtcNow);
+
+        var handler = domainFactory.Create<IBatteryVehicleHandler, IVehicleRegistry>(registry);
+
+        handler.Handle(
+            new SysStatusMessage(
+                1,
+                1,
+                56,
+                (float)10.0,
+                DateTimeOffset.UtcNow));
+
+        var vehicle = registry.GetRequired(vehicleId);
+
+        Assert.Equal(56, vehicle.State.BatteryRemaining);
+        Assert.Equal((float)10.0, vehicle.State.BatteryVoltage);
+    }
+
+    /// <summary>
+    /// Tests that a vehicle's attitude is updated when an AttitudeMessage is received.
+    /// </summary>
+    [Fact]
+    public void Should_Update_Attitude_From_AttitudeMessage()
+    {
+        var services = TestConfigurator.AddTestConfiguration().BuildServiceProvider();
+        services.UseTestConfiguration();
+        var registry = services.GetRequiredService<IVehicleRegistry>();
+        var domainFactory = services.GetRequiredService<IDomainFactory>();
+
+        var vehicleId = new VehicleId(1, 1);
+
+        registry.RegisterOrUpdateHeartbeat(
+            vehicleId,
+            0,
+            2,
+            3,
+            0,
+            4,
+            3,
+            DateTimeOffset.UtcNow);
+
+        var handler = domainFactory.Create<IAttitudeVehicleHandler, IVehicleRegistry>(registry);
+
+        handler.Handle(
+            new AttitudeMessage(
+                1,
+                1,
+                56.1629,
+                10.2039,
+                12.5,
+                DateTimeOffset.UtcNow));
+
+        var vehicle = registry.GetRequired(vehicleId);
+
+        Assert.Equal(56.1629, vehicle.State.Roll);
+        Assert.Equal(10.2039, vehicle.State.Pitch);
+        Assert.Equal(12.5, vehicle.State.Yaw);
     }
 
 
@@ -421,8 +551,10 @@ public class VehicleTests
 
         await simulator.StartAsync(TestContext.Current.CancellationToken);
 
-        var encoder = new MavLinkCommandEncoder(
-            new CommonMavLinkCrcExtraProvider());
+        //var encoder = new MavLinkCommandEncoder(
+        //    new CommonMavLinkCrcExtraProvider());
+        var encoder = services.GetRequiredService<IMavLinkCommandEncoder>();
+
 
         var armCommand = encoder.EncodeArmDisarm(
             1,
@@ -496,6 +628,78 @@ public class VehicleTests
         var vehicle = handler.Handle(heartbeat);
 
         Assert.Equal(VehicleMode.Guided, vehicle.State.Mode);
+    }
+
+    [Fact]
+    public void Should_Update_Position()
+    {
+        var vehicle = CreateVehicleSession();
+
+        vehicle.ApplyPosition(
+            56.1629,
+            10.2039,
+            12.5);
+
+        Assert.Equal(56.1629, vehicle.State.Latitude);
+        Assert.Equal(10.2039, vehicle.State.Longitude);
+        Assert.Equal(12.5, vehicle.State.Altitude);
+    }
+
+
+    [Fact]
+    public void Should_Update_Attitude()
+    {
+        var vehicle = CreateVehicleSession();
+
+        vehicle.ApplyAttitude(
+            0.1,
+            -0.2,
+            1.5);
+
+        Assert.Equal(0.1, vehicle.State.Roll);
+        Assert.Equal(-0.2, vehicle.State.Pitch);
+        Assert.Equal(1.5, vehicle.State.Yaw);
+    }
+
+
+    [Fact]
+    public void Should_Update_Battery()
+    {
+        var vehicle = CreateVehicleSession();
+
+        vehicle.ApplyBattery(
+            87,
+            11.4f);
+
+        Assert.Equal(87, vehicle.State.BatteryRemaining);
+        Assert.Equal(11.4f, vehicle.State.BatteryVoltage);
+    }
+
+
+    private static VehicleSession CreateVehicleSession()
+    {
+        var state = new VehicleState(
+            new VehicleId(1, 1),
+            0,
+            2,
+            3,
+            0,
+            4,
+            3,
+            VehicleConnectionState.Online,
+            DateTimeOffset.UtcNow,
+            VehicleMode.Stabilize,
+            false,
+            null,
+            null,
+            null,
+            null,
+            null,
+            null,
+            null,
+            null);
+
+        return new VehicleSession(state);
     }
 
     private static async Task EventuallyAsync(Action assertion, TimeSpan timeout, CancellationToken cancellationToken)

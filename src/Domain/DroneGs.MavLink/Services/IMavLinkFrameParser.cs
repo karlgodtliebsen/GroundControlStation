@@ -1,4 +1,4 @@
-﻿namespace DroneGs.MavLink;
+﻿namespace DroneGs.MavLink.Services;
 
 /// <summary>
 /// 

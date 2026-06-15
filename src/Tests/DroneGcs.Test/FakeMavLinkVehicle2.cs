@@ -1,9 +1,10 @@
 ﻿using System.Buffers.Binary;
 using System.Net;
 using System.Net.Sockets;
-
 using DroneGs.MavLink;
 using DroneGs.MavLink.Commands;
+using DroneGs.MavLink.Messages;
+using DroneGs.MavLink.Services;
 
 namespace DroneGcs.Test;
 
@@ -97,15 +98,11 @@ public sealed class FakeMavLinkVehicle2 : IAsyncDisposable
                 DateTimeOffset.UtcNow);
 
             foreach (var frame in frames)
-            {
                 if (frame.MessageId == MessageIds.CommandLong)
-                {
                     await HandleCommandLongAsync(
                             frame,
                             cancellationToken)
                         .ConfigureAwait(false);
-                }
-            }
         }
     }
 
@@ -113,19 +110,13 @@ public sealed class FakeMavLinkVehicle2 : IAsyncDisposable
         MavLinkFrame frame,
         CancellationToken cancellationToken)
     {
-        if (frame.Payload.Length < 33)
-        {
-            return;
-        }
+        if (frame.Payload.Length < 33) return;
 
         var payload = frame.Payload.Span;
 
         var command = BinaryPrimitives.ReadUInt16LittleEndian(payload[28..30]);
 
-        if (command != MavLinkCommandIds.ComponentArmDisarm)
-        {
-            return;
-        }
+        if (command != MavLinkCommandIds.ComponentArmDisarm) return;
 
         var commandAck =
             CreateCommandAckV2(
@@ -199,10 +190,8 @@ public sealed class FakeMavLinkVehicle2 : IAsyncDisposable
         var crcProvider = new CommonMavLinkCrcExtraProvider();
 
         if (!crcProvider.TryGetCrcExtra(messageId, out var crcExtra))
-        {
             throw new InvalidOperationException(
                 $"No CRC extra registered for MAVLink message id {messageId}.");
-        }
 
         var crc = MavLinkCrc.Calculate(
             packet.AsSpan(1, 9 + payload.Length),
@@ -237,10 +226,7 @@ public sealed class FakeMavLinkVehicle2 : IAsyncDisposable
 
     private static async Task AwaitIgnoringCancellationAsync(Task? task)
     {
-        if (task is null)
-        {
-            return;
-        }
+        if (task is null) return;
 
         try
         {

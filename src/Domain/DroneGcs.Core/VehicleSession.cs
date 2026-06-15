@@ -73,13 +73,57 @@ public sealed class VehicleSession(VehicleState initialState)
             SystemStatus = systemStatus,
             MavLinkVersion = mavLinkVersion,
             Mode = MapMode(customMode),
-            //IsArmed = (baseMode & 0b1000_0000) != 0,
             IsArmed = (baseMode & MavModeFlagSafetyArmed) != 0,
             ConnectionState = VehicleConnectionState.Online,
             LastHeartbeatAt = receivedAt
         };
     }
 
+    /// <summary>
+    /// Applies position information to the vehicle's state.
+    /// </summary>
+    /// <param name="latitude">The latitude of the vehicle.</param>
+    /// <param name="longitude">The longitude of the vehicle.</param>
+    /// <param name="altitude">The altitude of the vehicle.</param>
+    public void ApplyPosition(double latitude, double longitude, double altitude)
+    {
+        state = state with
+        {
+            Latitude = latitude,
+            Longitude = longitude,
+            Altitude = altitude
+        };
+    }
+
+    /// <summary>
+    /// Applies attitude information to the vehicle's state.
+    /// </summary>
+    /// <param name="roll">The roll angle of the vehicle.</param>
+    /// <param name="pitch">The pitch angle of the vehicle.</param>
+    /// <param name="yaw">The yaw angle of the vehicle.</param>
+    public void ApplyAttitude(double roll, double pitch, double yaw)
+    {
+        state = state with
+        {
+            Roll = roll,
+            Pitch = pitch,
+            Yaw = yaw
+        };
+    }
+
+    /// <summary>
+    /// Applies battery information to the vehicle's state.
+    /// </summary>
+    /// <param name="batteryRemaining">The remaining battery percentage.</param>
+    /// <param name="batteryVoltage">The battery voltage.</param>
+    public void ApplyBattery(int? batteryRemaining, float? batteryVoltage)
+    {
+        state = state with
+        {
+            BatteryRemaining = batteryRemaining,
+            BatteryVoltage = batteryVoltage
+        };
+    }
 
     private static VehicleMode MapMode(uint customMode)
     {

@@ -8,6 +8,13 @@ namespace DroneGcs.Core;
 public interface IVehicleRegistry
 {
     /// <summary>
+    /// Gets the vehicle session for the specified vehicle ID. Throws an exception if the vehicle is not found.
+    /// </summary>
+    /// <param name="vehicleId">The unique identifier of the vehicle.</param>
+    /// <returns>The vehicle session associated with the specified vehicle ID.</returns>
+    VehicleSession GetRequired(VehicleId vehicleId);
+
+    /// <summary>
     /// Gets the collection of registered vehicle sessions.
     /// </summary>
     IReadOnlyCollection<VehicleSession> Vehicles { get; }

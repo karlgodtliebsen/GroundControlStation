@@ -23,12 +23,14 @@ public static class DomainConfigurator
     public static IServiceCollection AddDomainConfiguration(this IServiceCollection services, IConfiguration configuration)
     {
         services.TryAddSingleton<IVehicleRegistry, VehicleRegistry>();
-        services.TryAddSingleton<IHeartbeatVehicleHandler, HeartbeatVehicleHandler>();
         services.TryAddSingleton<IVehicleMessagePump, VehicleMessagePump>();
         services.TryAddSingleton<IVehicleConnectionMonitor, VehicleConnectionMonitor>();
         services.TryAddSingleton<IVehicleCommandService, VehicleCommandService>();
+        services.TryAddSingleton<IHeartbeatVehicleHandler, HeartbeatVehicleHandler>();
+        services.TryAddSingleton<IAttitudeVehicleHandler, AttitudeVehicleHandler>();
+        services.TryAddSingleton<IBatteryVehicleHandler, BatteryVehicleHandler>();
+        services.TryAddSingleton<IPositionVehicleHandler, PositionVehicleHandler>();
 
-        //services.TryAddSingleton<IVehicleService, VehicleService>();
         return services;
     }
 
@@ -41,8 +43,10 @@ public static class DomainConfigurator
     {
         var domainFactory = services.GetRequiredService<IDomainFactory>();
         domainFactory.Add<IHeartbeatVehicleHandler, HeartbeatVehicleHandler>();
+        domainFactory.Add<IAttitudeVehicleHandler, AttitudeVehicleHandler>();
+        domainFactory.Add<IBatteryVehicleHandler, BatteryVehicleHandler>();
+        domainFactory.Add<IPositionVehicleHandler, PositionVehicleHandler>();
         domainFactory.Add<IVehicleMessagePump, VehicleMessagePump>();
         return services;
     }
-    //IMavLinkClient
 }

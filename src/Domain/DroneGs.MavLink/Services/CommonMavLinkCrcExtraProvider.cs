@@ -1,17 +1,31 @@
-﻿namespace DroneGs.MavLink;
+﻿using DroneGs.MavLink.Messages;
+
+namespace DroneGs.MavLink.Services;
 
 /// <summary>
 /// Provides CRC extra bytes for common MAVLink messages.
 /// </summary>
 public sealed class CommonMavLinkCrcExtraProvider : IMavLinkCrcExtraProvider
 {
-    /// <inheritdoc />
+    /// <inheritdoc/>
     public bool TryGetCrcExtra(uint messageId, out byte crcExtra)
     {
         switch (messageId)
         {
             case MessageIds.Heartbeat:
                 crcExtra = 50;
+                return true;
+
+            case MessageIds.SysStatus:
+                crcExtra = 124;
+                return true;
+
+            case MessageIds.Attitude:
+                crcExtra = 39;
+                return true;
+
+            case MessageIds.GlobalPositionInt:
+                crcExtra = 104;
                 return true;
 
             case MessageIds.CommandLong:

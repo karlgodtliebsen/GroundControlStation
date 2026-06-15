@@ -1,5 +1,8 @@
 ﻿using System.Buffers.Binary;
+
 using DroneGs.MavLink.Commands;
+using DroneGs.MavLink.Messages;
+using DroneGs.MavLink.Services;
 
 namespace DroneGs.MavLink.Encoding;
 
@@ -66,8 +69,10 @@ public sealed class MavLinkCommandEncoder(IMavLinkCrcExtraProvider crcExtraProvi
         payload.CopyTo(packet.AsSpan(10));
 
         if (!crcExtraProvider.TryGetCrcExtra(messageId, out var crcExtra))
+        {
             throw new InvalidOperationException(
                 $"No CRC extra registered for MAVLink message id {messageId}.");
+        }
 
         var crc = MavLinkCrc.Calculate(
             packet.AsSpan(1, 9 + payload.Length),
@@ -84,7 +89,10 @@ public sealed class MavLinkCommandEncoder(IMavLinkCrcExtraProvider crcExtraProvi
     {
         var bytes = BitConverter.GetBytes(value);
 
-        if (!BitConverter.IsLittleEndian) Array.Reverse(bytes);
+        if (!BitConverter.IsLittleEndian)
+        {
+            Array.Reverse(bytes);
+        }
 
         bytes.CopyTo(target);
     }

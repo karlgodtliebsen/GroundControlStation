@@ -1,6 +1,6 @@
 ﻿using DroneGcs.Transport;
 
-namespace DroneGs.MavLink;
+namespace DroneGs.MavLink.Client;
 
 /// <summary>
 /// Represents a MAVLink client that can send and receive data from a MAVLink transport.

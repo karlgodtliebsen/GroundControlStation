@@ -1,5 +1,7 @@
 ﻿using System.Buffers.Binary;
+
 using DroneGs.MavLink.Messages;
+using DroneGs.MavLink.Services;
 
 namespace DroneGs.MavLink.Decoding;
 
@@ -13,9 +15,15 @@ public sealed class CommandAckMessageDecoder : IMavLinkMessageDecoder
     {
         message = null;
 
-        if (frame.MessageId != MessageIds.CommandAck) return false;
+        if (frame.MessageId != MessageIds.CommandAck)
+        {
+            return false;
+        }
 
-        if (frame.Payload.Length < 3) return false;
+        if (frame.Payload.Length < 3)
+        {
+            return false;
+        }
 
         var span = frame.Payload.Span;
 

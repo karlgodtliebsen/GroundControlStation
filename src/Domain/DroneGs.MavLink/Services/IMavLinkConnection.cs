@@ -1,6 +1,6 @@
 ﻿using DroneGs.MavLink.Messages;
 
-namespace DroneGs.MavLink;
+namespace DroneGs.MavLink.Services;
 
 //Frame parser
 //Frame serializer

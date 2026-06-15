@@ -2,9 +2,10 @@
 
 using DroneGcs.Transport;
 
+using DroneGs.MavLink.Client;
 using DroneGs.MavLink.Messages;
 
-namespace DroneGs.MavLink;
+namespace DroneGs.MavLink.Services;
 
 /// <summary>
 /// Represents a connection to a MAVLink device, managing the reception and decoding of MAVLink frames and messages.

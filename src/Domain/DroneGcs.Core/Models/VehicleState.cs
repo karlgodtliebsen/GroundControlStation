@@ -14,6 +14,14 @@
 /// <param name="LastHeartbeatAt">The timestamp of the last heartbeat received from the vehicle.</param>
 /// <param name="Mode"></param>
 /// <param name="IsArmed"></param>
+/// <param name="Latitude">The latitude of the vehicle.</param>
+/// <param name="Longitude">The longitude of the vehicle.</param>
+/// <param name="Altitude">The altitude of the vehicle.</param>
+/// <param name="Roll">The roll angle of the vehicle.</param>
+/// <param name="Pitch">The pitch angle of the vehicle.</param>
+/// <param name="Yaw">The yaw angle of the vehicle.</param>
+/// <param name="BatteryRemaining">The remaining battery percentage of the vehicle.</param>
+/// <param name="BatteryVoltage">The battery voltage of the vehicle.</param>
 public sealed record VehicleState(
     VehicleId VehicleId,
     uint CustomMode,
@@ -25,4 +33,12 @@ public sealed record VehicleState(
     VehicleConnectionState ConnectionState,
     DateTimeOffset LastHeartbeatAt,
     VehicleMode Mode,
-    bool IsArmed);
+    bool IsArmed,
+    double? Latitude,
+    double? Longitude,
+    double? Altitude,
+    double? Roll,
+    double? Pitch,
+    double? Yaw,
+    int? BatteryRemaining,
+    float? BatteryVoltage);

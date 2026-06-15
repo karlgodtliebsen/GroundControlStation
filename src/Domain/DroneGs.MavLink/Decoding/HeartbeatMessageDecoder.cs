@@ -1,5 +1,6 @@
 ﻿using System.Buffers.Binary;
 using DroneGs.MavLink.Messages;
+using DroneGs.MavLink.Services;
 
 namespace DroneGs.MavLink.Decoding;
 

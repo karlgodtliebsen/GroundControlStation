@@ -1,0 +1,42 @@
+﻿using System.Buffers.Binary;
+
+using DroneGs.MavLink.Messages;
+using DroneGs.MavLink.Services;
+
+namespace DroneGs.MavLink.Decoding;
+
+/// <inheritdoc />
+public sealed class GlobalPositionIntMessageDecoder : IMavLinkMessageDecoder
+{
+    /// <inheritdoc />
+    public bool TryDecode(MavLinkFrame frame, out MavLinkMessage? message)
+    {
+        message = null;
+
+        if (frame.MessageId != MessageIds.GlobalPositionInt)
+        {
+            return false;
+        }
+
+        if (frame.Payload.Length < 28)
+        {
+            return false;
+        }
+
+        var span = frame.Payload.Span;
+
+        var latRaw = BinaryPrimitives.ReadInt32LittleEndian(span[4..8]);
+        var lonRaw = BinaryPrimitives.ReadInt32LittleEndian(span[8..12]);
+        var altRaw = BinaryPrimitives.ReadInt32LittleEndian(span[12..16]);
+
+        message = new GlobalPositionIntMessage(
+            frame.SystemId,
+            frame.ComponentId,
+            latRaw / 10_000_000.0,
+            lonRaw / 10_000_000.0,
+            altRaw / 1000.0,
+            frame.ReceivedAt);
+
+        return true;
+    }
+}

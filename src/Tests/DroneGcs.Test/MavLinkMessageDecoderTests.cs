@@ -3,8 +3,10 @@ using DroneGcs.Core;
 using DroneGcs.Test.Configuration;
 using DroneGcs.Transport;
 using DroneGs.MavLink;
+using DroneGs.MavLink.Client;
 using DroneGs.MavLink.Decoding;
 using DroneGs.MavLink.Messages;
+using DroneGs.MavLink.Services;
 using Microsoft.Extensions.DependencyInjection;
 
 namespace DroneGcs.Test;

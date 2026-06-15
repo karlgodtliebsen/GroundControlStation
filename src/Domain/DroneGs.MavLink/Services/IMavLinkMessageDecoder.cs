@@ -1,6 +1,6 @@
 ﻿using DroneGs.MavLink.Messages;
 
-namespace DroneGs.MavLink;
+namespace DroneGs.MavLink.Services;
 
 /// <summary>
 /// Defines a contract for decoding MAVLink messages from frames.

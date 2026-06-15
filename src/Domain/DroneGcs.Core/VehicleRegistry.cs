@@ -9,6 +9,15 @@ public sealed class VehicleRegistry : IVehicleRegistry
 {
     private readonly Dictionary<VehicleId, VehicleSession> vehicles = [];
 
+    /// <inheritdoc />
+    public VehicleSession GetRequired(VehicleId vehicleId)
+    {
+        return !vehicles.TryGetValue(vehicleId, out var vehicle)
+            ? throw new InvalidOperationException(
+                $"Vehicle '{vehicleId}' is not registered.")
+            : vehicle;
+    }
+
     /// <summary>
     /// Gets the collection of registered vehicle sessions.
     /// </summary>
@@ -33,8 +42,8 @@ public sealed class VehicleRegistry : IVehicleRegistry
     /// <param name="baseMode"></param>
     /// <param name="systemStatus"></param>
     /// <param name="mavLinkVersion"></param>
-    /// <param name="receivedAt"></param>
-    /// <returns></returns>
+    /// <param name="receivedAt">The timestamp when the heartbeat was received.</param>
+    /// <returns>The updated or newly registered vehicle session.</returns>
     public VehicleSession RegisterOrUpdateHeartbeat(
         VehicleId vehicleId,
         uint customMode,
@@ -58,7 +67,16 @@ public sealed class VehicleRegistry : IVehicleRegistry
                 VehicleConnectionState.Unknown,
                 receivedAt,
                 VehicleMode.Unknown,
-                false);
+                false,
+                null,
+                null,
+                null,
+                null,
+                null,
+                null,
+                null,
+                null);
+
 
             session = new VehicleSession(state);
             vehicles.Add(vehicleId, session);
