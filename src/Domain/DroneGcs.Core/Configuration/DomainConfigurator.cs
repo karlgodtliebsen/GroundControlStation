@@ -1,6 +1,8 @@
-﻿using Domain.Library.Factory.Domain.Abstractions;
+﻿using Domain.Library.Configuration;
+using Domain.Library.Factory.Domain.Abstractions;
 
 using DroneGcs.Core.Commands;
+using DroneGcs.Core.Services;
 using DroneGcs.Core.VehicleHandler;
 
 using Microsoft.Extensions.Configuration;
@@ -26,11 +28,12 @@ public static class DomainConfigurator
         services.TryAddSingleton<IVehicleMessagePump, VehicleMessagePump>();
         services.TryAddSingleton<IVehicleConnectionMonitor, VehicleConnectionMonitor>();
         services.TryAddSingleton<IVehicleCommandService, VehicleCommandService>();
+        services.TryAddSingleton<IVehicleService, VehicleService>();
         services.TryAddSingleton<IHeartbeatVehicleHandler, HeartbeatVehicleHandler>();
         services.TryAddSingleton<IAttitudeVehicleHandler, AttitudeVehicleHandler>();
         services.TryAddSingleton<IBatteryVehicleHandler, BatteryVehicleHandler>();
         services.TryAddSingleton<IPositionVehicleHandler, PositionVehicleHandler>();
-
+        services.AddDebugLogging();
         return services;
     }
 

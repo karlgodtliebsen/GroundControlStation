@@ -1,11 +1,14 @@
-﻿using DroneGcs.Core.Models;
+﻿using Domain.Library.EventHub.Abstractions;
 
-namespace DroneGcs.Core;
+using DroneGcs.Core.DomainEvents;
+using DroneGcs.Core.Models;
+
+namespace DroneGcs.Core.Services;
 
 /// <summary>
 /// Manages the registration and state of vehicles.
 /// </summary>
-public sealed class VehicleRegistry : IVehicleRegistry
+public sealed class VehicleRegistry(IEventHub eventHub) : IVehicleRegistry
 {
     private readonly Dictionary<VehicleId, VehicleSession> vehicles = [];
 
@@ -91,6 +94,8 @@ public sealed class VehicleRegistry : IVehicleRegistry
             mavLinkVersion,
             receivedAt);
 
+        //eventHub.PublishDomainEvent<VehicleRegistered>("", new VehicleRegistered(vehicleId));
+        eventHub.Publish(new VehicleRegistered(vehicleId));
         return session;
     }
 }

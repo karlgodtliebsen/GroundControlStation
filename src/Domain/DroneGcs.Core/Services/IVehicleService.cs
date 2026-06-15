@@ -1,0 +1,48 @@
+﻿using DroneGcs.Core.Commands;
+using DroneGcs.Core.Models;
+
+namespace DroneGcs.Core.Services;
+
+/// <summary>
+/// 
+/// </summary>
+public interface IVehicleService
+{
+    /// <summary>
+    /// 
+    /// </summary>
+    /// <returns></returns>
+    IReadOnlyCollection<VehicleState> GetVehicles();
+
+    /// <summary>
+    /// 
+    /// </summary>
+    /// <param name="vehicleId"></param>
+    /// <returns></returns>
+    VehicleState GetVehicle(VehicleId vehicleId);
+
+    /// <summary>
+    /// 
+    /// </summary>
+    /// <param name="vehicleId"></param>
+    /// <param name="cancellationToken"></param>
+    /// <returns></returns> 
+    Task<VehicleCommandResponse> ArmAsync(VehicleId vehicleId, CancellationToken cancellationToken);
+
+    /// <summary>
+    /// 
+    /// </summary>
+    /// <param name="vehicleId"></param>
+    /// <param name="cancellationToken"></param>
+    /// <returns></returns>
+    Task<VehicleCommandResponse> DisarmAsync(VehicleId vehicleId, CancellationToken cancellationToken);
+
+    /// <summary>
+    /// 
+    /// </summary>
+    /// <param name="vehicleId"></param>
+    /// <param name="mode"></param>
+    /// <param name="cancellationToken"></param>
+    /// <returns></returns>
+    Task<VehicleCommandResponse> SetModeAsync(VehicleId vehicleId, VehicleMode mode, CancellationToken cancellationToken);
+}

@@ -3,7 +3,7 @@
 using DroneGs.MavLink.Messages;
 using DroneGs.MavLink.Services;
 
-namespace DroneGcs.Core;
+namespace DroneGcs.Core.Services;
 
 /// <summary>
 /// Pumps messages from a vehicle connection and handles them.

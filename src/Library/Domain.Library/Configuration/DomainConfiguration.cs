@@ -1,4 +1,5 @@
-﻿using Domain.Library.Factory.Domain;
+﻿using Domain.Library.EventHub.Abstractions;
+using Domain.Library.Factory.Domain;
 using Domain.Library.Factory.Domain.Abstractions;
 
 using Microsoft.Extensions.DependencyInjection;
@@ -9,7 +10,7 @@ namespace Domain.Library.Configuration;
 /// <summary>
 ///   Configures the domain factories for dependency injection.
 /// </summary>
-public static class DomainFactoryConfiguration
+public static class DomainConfiguration
 {
     /// <summary>
     /// Adds the domain factories to the service collection.
@@ -21,6 +22,17 @@ public static class DomainFactoryConfiguration
         services.TryAddSingleton<IDomainFactory, DomainFactory>();
         services.TryAddSingleton<IFactory, ActivatorFactory>();
         services.TryAddSingleton<IServiceFactory, ServiceFactory>();
+        services.TryAddSingleton<IEventHub, EventHub.EventHub>();
+        return services;
+    }
+
+    /// <summary>
+    /// 
+    /// </summary>
+    /// <param name="services"></param>
+    /// <returns></returns>
+    public static IServiceCollection AddLogging(this IServiceCollection services)
+    {
         return services;
     }
 }

@@ -1,5 +1,6 @@
 ﻿using System.Buffers.Binary;
 
+using Domain.Library.EventHub.Abstractions;
 using Domain.Library.Factory.Domain.Abstractions;
 
 using DroneGcs.Core;
@@ -332,7 +333,11 @@ public class VehicleTests
     [Fact]
     public void Should_Mark_Vehicle_As_Stale_When_Heartbeat_Is_Old()
     {
-        var registry = new VehicleRegistry();
+        var services = TestConfigurator.AddTestConfiguration().BuildServiceProvider();
+        services.UseTestConfiguration();
+        var eventHub = services.GetRequiredService<IEventHub>();
+
+        var registry = services.GetRequiredService<IVehicleRegistry>();
 
         var receivedAt = DateTimeOffset.UtcNow;
 
