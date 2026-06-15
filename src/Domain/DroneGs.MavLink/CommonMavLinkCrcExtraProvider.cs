@@ -10,8 +10,16 @@ public sealed class CommonMavLinkCrcExtraProvider : IMavLinkCrcExtraProvider
     {
         switch (messageId)
         {
-            case 0: // HEARTBEAT
+            case MessageIds.Heartbeat:
                 crcExtra = 50;
+                return true;
+
+            case MessageIds.CommandLong:
+                crcExtra = 152;
+                return true;
+
+            case MessageIds.CommandAck:
+                crcExtra = 143;
                 return true;
 
             default:

@@ -1,6 +1,7 @@
 ﻿using Domain.Library.Factory.Domain.Abstractions;
 
-using DroneGs.MavLink.Decoder;
+using DroneGs.MavLink.Decoding;
+using DroneGs.MavLink.Encoding;
 
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
@@ -26,6 +27,7 @@ public static class MavLinkConfigurator
         services.TryAddSingleton<IMavLinkFrameParser, MavLinkV2FrameParser>();
         services.TryAddSingleton<IMavLinkConnection, MavLinkConnection>();
         services.TryAddSingleton<IMavLinkClient, MavLinkClient>();
+        services.TryAddSingleton<IMavLinkCommandEncoder, MavLinkCommandEncoder>();
         return services;
     }
 

@@ -1,4 +1,6 @@
-﻿using Domain.Library.Factory.Domain.Abstractions;
+﻿using System.Buffers.Binary;
+
+using Domain.Library.Factory.Domain.Abstractions;
 
 using DroneGcs.Core;
 using DroneGcs.Core.MavLink;
@@ -6,7 +8,9 @@ using DroneGcs.Test.Configuration;
 using DroneGcs.Transport;
 
 using DroneGs.MavLink;
-using DroneGs.MavLink.Decoder;
+using DroneGs.MavLink.Commands;
+using DroneGs.MavLink.Decoding;
+using DroneGs.MavLink.Encoding;
 using DroneGs.MavLink.Messages;
 
 using Microsoft.Extensions.DependencyInjection;
@@ -224,7 +228,9 @@ public class VehicleTests
     [Fact]
     public void Should_Mark_Vehicle_As_Offline_When_Heartbeat_Is_Very_Old()
     {
-        var registry = new VehicleRegistry();
+        var services = TestConfigurator.AddTestConfiguration().BuildServiceProvider();
+        services.UseTestConfiguration();
+        var registry = services.GetRequiredService<IVehicleRegistry>();
 
         var receivedAt = DateTimeOffset.UtcNow;
 
@@ -254,7 +260,10 @@ public class VehicleTests
     [Fact]
     public void Should_Mark_Vehicle_Online_When_New_Heartbeat_Arrives_After_Offline()
     {
-        var registry = new VehicleRegistry();
+        var services = TestConfigurator.AddTestConfiguration().BuildServiceProvider();
+        services.UseTestConfiguration();
+        var registry = services.GetRequiredService<IVehicleRegistry>();
+
 
         var receivedAt = DateTimeOffset.UtcNow;
         var vehicleId = new VehicleId(1, 1);
@@ -269,10 +278,7 @@ public class VehicleTests
             3,
             receivedAt);
 
-        registry.UpdateConnectionStates(
-            receivedAt.AddSeconds(6),
-            TimeSpan.FromSeconds(2),
-            TimeSpan.FromSeconds(5));
+        registry.UpdateConnectionStates(receivedAt.AddSeconds(6), TimeSpan.FromSeconds(2), TimeSpan.FromSeconds(5));
 
         Assert.Equal(
             VehicleConnectionState.Offline,
@@ -292,6 +298,153 @@ public class VehicleTests
             VehicleConnectionState.Online,
             vehicle.State.ConnectionState);
     }
+
+    /// <summary>
+    /// 
+    /// </summary>
+    [Fact]
+    public void Should_Encode_Arm_CommandLong_Frame()
+    {
+        var services = TestConfigurator.AddTestConfiguration().BuildServiceProvider();
+        services.UseTestConfiguration();
+        var encoder = services.GetRequiredService<IMavLinkCommandEncoder>();
+
+        var packet = encoder.EncodeArmDisarm(
+            1,
+            1,
+            true);
+
+        Assert.Equal(0xFD, packet[0]);
+        Assert.Equal(33, packet[1]);
+
+        var messageId =
+            packet[7]
+            | ((uint)packet[8] << 8)
+            | ((uint)packet[9] << 16);
+
+        Assert.Equal(MessageIds.CommandLong, messageId);
+
+        var payload = packet.AsSpan(10, 33);
+
+        var param1 = BitConverter.ToSingle(payload[0..4]);
+        var command = BinaryPrimitives.ReadUInt16LittleEndian(payload[28..30]);
+
+        Assert.Equal(1.0f, param1);
+        Assert.Equal(MavLinkCommandIds.ComponentArmDisarm, command);
+        Assert.Equal(1, payload[30]); // target system
+        Assert.Equal(1, payload[31]); // target component
+    }
+
+    /// <summary>
+    /// 
+    /// </summary>
+    [Fact]
+    public void Should_Decode_CommandAck_Message()
+    {
+        var services = TestConfigurator.AddTestConfiguration().BuildServiceProvider();
+        services.UseTestConfiguration();
+        var domainFactory = services.GetRequiredService<IDomainFactory>();
+
+        var receivedAt = DateTimeOffset.UtcNow;
+
+        var payload = new byte[]
+        {
+            0x90, 0x01, // 400 COMPONENT_ARM_DISARM
+            0x00 // ACCEPTED
+        };
+
+        var frame = new MavLinkFrame(
+            1,
+            1,
+            MessageIds.CommandAck,
+            0,
+            payload,
+            new ReadOnlyMemory<byte>(),
+            receivedAt);
+
+        var decoder = new CommandAckMessageDecoder();
+
+        var decoded = decoder.TryDecode(frame, out var message);
+
+        Assert.True(decoded);
+
+        var ack = Assert.IsType<CommandAckMessage>(message);
+
+        Assert.Equal(1, ack.SystemId);
+        Assert.Equal(1, ack.ComponentId);
+        Assert.Equal(400, ack.Command);
+        Assert.Equal(0, ack.Result);
+    }
+
+    /// <summary>
+    /// 
+    /// </summary>
+    [Fact]
+    public async Task Should_Receive_CommandAck_When_Arm_Command_Is_Sent()
+    {
+        var services = TestConfigurator.AddTestConfiguration().BuildServiceProvider();
+        services.UseTestConfiguration();
+
+        var domainFactory = services.GetRequiredService<IDomainFactory>();
+
+        var parser = services.GetRequiredService<IMavLinkFrameParser>();
+
+        var decoder = domainFactory.Create<IMavLinkMessageDecoder, IMavLinkMessageDecoder[]>(
+        [
+            new HeartbeatMessageDecoder(),
+            new CommandAckMessageDecoder()
+        ]);
+
+        var transport = domainFactory.Create<IMavLinkTransport, int, string, int>(
+            14550,
+            "127.0.0.1",
+            14551);
+
+        await using var client =
+            domainFactory.Create<IMavLinkClient, IMavLinkTransport>(transport);
+
+        await using var connection =
+            domainFactory.Create<IMavLinkConnection, IMavLinkClient, IMavLinkFrameParser, IMavLinkMessageDecoder>(
+                client,
+                parser,
+                decoder);
+
+        await connection.StartAsync(TestContext.Current.CancellationToken);
+
+        await using var simulator =
+            new FakeMavLinkVehicle2(
+                "127.0.0.1",
+                14550,
+                TimeSpan.FromMilliseconds(100),
+                14551);
+
+        await simulator.StartAsync(TestContext.Current.CancellationToken);
+
+        var encoder = new MavLinkCommandEncoder(
+            new CommonMavLinkCrcExtraProvider());
+
+        var armCommand = encoder.EncodeArmDisarm(
+            1,
+            1,
+            true);
+
+        await connection.SendRawAsync(
+            armCommand,
+            TestContext.Current.CancellationToken);
+
+        var ack = await connection
+            .ReadMessagesAsync(TestContext.Current.CancellationToken)
+            .OfType<CommandAckMessage>()
+            .FirstAsync(TestContext.Current.CancellationToken)
+            .AsTask()
+            .WaitAsync(TimeSpan.FromSeconds(5), TestContext.Current.CancellationToken);
+
+        Assert.Equal(1, ack.SystemId);
+        Assert.Equal(1, ack.ComponentId);
+        Assert.Equal(MavLinkCommandIds.ComponentArmDisarm, ack.Command);
+        Assert.Equal(0, ack.Result);
+    }
+
 
     private static async Task EventuallyAsync(Action assertion, TimeSpan timeout, CancellationToken cancellationToken)
     {

@@ -1,8 +1,7 @@
 ﻿using System.Buffers.Binary;
-
 using DroneGs.MavLink.Messages;
 
-namespace DroneGs.MavLink.Decoder;
+namespace DroneGs.MavLink.Decoding;
 
 /// <summary>
 /// Decodes MAVLink Heartbeat messages.
@@ -19,15 +18,9 @@ public sealed class HeartbeatMessageDecoder : IMavLinkMessageDecoder
     {
         message = null;
 
-        if (frame.MessageId != MessageIds.Heartbeat)
-        {
-            return false;
-        }
+        if (frame.MessageId != MessageIds.Heartbeat) return false;
 
-        if (frame.Payload.Length != 9)
-        {
-            return false;
-        }
+        if (frame.Payload.Length != 9) return false;
 
         var span = frame.Payload.Span;
 

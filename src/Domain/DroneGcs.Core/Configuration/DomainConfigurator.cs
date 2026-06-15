@@ -1,5 +1,6 @@
 ﻿using Domain.Library.Factory.Domain.Abstractions;
 
+using DroneGcs.Core.Commands;
 using DroneGcs.Core.MavLink;
 
 using Microsoft.Extensions.Configuration;
@@ -25,6 +26,7 @@ public static class DomainConfigurator
         services.TryAddSingleton<IHeartbeatVehicleHandler, HeartbeatVehicleHandler>();
         services.TryAddSingleton<IVehicleMessagePump, VehicleMessagePump>();
         services.TryAddSingleton<IVehicleConnectionMonitor, VehicleConnectionMonitor>();
+        services.TryAddSingleton<IVehicleCommandService, VehicleCommandService>();
 
         return services;
     }

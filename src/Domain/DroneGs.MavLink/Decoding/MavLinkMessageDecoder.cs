@@ -1,6 +1,6 @@
 ﻿using DroneGs.MavLink.Messages;
 
-namespace DroneGs.MavLink.Decoder;
+namespace DroneGs.MavLink.Decoding;
 
 /// <summary>
 /// Decodes MAVLink messages using a collection of specific message decoders.
@@ -14,12 +14,8 @@ public sealed class MavLinkMessageDecoder(IEnumerable<IMavLinkMessageDecoder> de
     public bool TryDecode(MavLinkFrame frame, out MavLinkMessage? message)
     {
         foreach (var decoder in decoders)
-        {
             if (decoder.TryDecode(frame, out message))
-            {
                 return true;
-            }
-        }
 
         message = null;
         return false;

@@ -15,7 +15,10 @@ public static class MavLinkCrc
     {
         ushort crc = 0xFFFF;
 
-        foreach (var b in buffer) Accumulate(b, ref crc);
+        foreach (var b in buffer)
+        {
+            Accumulate(b, ref crc);
+        }
 
         Accumulate(crcExtra, ref crc);
 

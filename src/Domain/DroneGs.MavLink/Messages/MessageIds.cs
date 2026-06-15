@@ -1,12 +1,8 @@
-﻿namespace DroneGs.MavLink.Messages;
+﻿namespace DroneGs.MavLink;
 
-/// <summary>
-/// Contains the message IDs for various MAVLink messages.
-/// </summary>
 public static class MessageIds
 {
-    /// <summary>
-    /// The message ID for the Heartbeat message.
-    /// </summary>
     public const uint Heartbeat = 0;
+    public const uint CommandLong = 76;
+    public const uint CommandAck = 77;
 }
