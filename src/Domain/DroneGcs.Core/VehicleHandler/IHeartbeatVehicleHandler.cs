@@ -1,6 +1,6 @@
 ﻿using DroneGs.MavLink.Messages;
 
-namespace DroneGcs.Core.MavLink;
+namespace DroneGcs.Core.VehicleHandler;
 
 /// <summary>
 /// Handles heartbeat messages and updates the vehicle registry accordingly.

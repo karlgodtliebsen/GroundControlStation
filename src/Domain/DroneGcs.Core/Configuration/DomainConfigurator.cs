@@ -1,7 +1,7 @@
 ﻿using Domain.Library.Factory.Domain.Abstractions;
 
 using DroneGcs.Core.Commands;
-using DroneGcs.Core.MavLink;
+using DroneGcs.Core.VehicleHandler;
 
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
@@ -28,6 +28,7 @@ public static class DomainConfigurator
         services.TryAddSingleton<IVehicleConnectionMonitor, VehicleConnectionMonitor>();
         services.TryAddSingleton<IVehicleCommandService, VehicleCommandService>();
 
+        //services.TryAddSingleton<IVehicleService, VehicleService>();
         return services;
     }
 

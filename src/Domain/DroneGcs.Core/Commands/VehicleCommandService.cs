@@ -1,4 +1,6 @@
-﻿namespace DroneGcs.Core.Commands;
+﻿using DroneGcs.Core.Models;
+
+namespace DroneGcs.Core.Commands;
 
 public class VehicleCommandService : IVehicleCommandService
 {
@@ -10,6 +12,12 @@ public class VehicleCommandService : IVehicleCommandService
 
     /// <inheritdoc />
     public Task<VehicleCommandResponse> DisarmAsync(VehicleId vehicleId, CancellationToken cancellationToken)
+    {
+        throw new NotImplementedException();
+    }
+
+    /// <inheritdoc />
+    public Task<VehicleCommandResponse> SetModeAsync(VehicleId vehicleId, VehicleMode mode, CancellationToken cancellationToken)
     {
         throw new NotImplementedException();
     }

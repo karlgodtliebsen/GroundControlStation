@@ -1,4 +1,6 @@
-﻿namespace DroneGcs.Core.Commands;
+﻿using DroneGcs.Core.Models;
+
+namespace DroneGcs.Core.Commands;
 
 /// <summary>
 /// 

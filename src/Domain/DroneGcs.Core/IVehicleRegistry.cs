@@ -1,4 +1,6 @@
-﻿namespace DroneGcs.Core;
+﻿using DroneGcs.Core.Models;
+
+namespace DroneGcs.Core;
 
 /// <summary>
 /// Defines the contract for a vehicle registry, which manages the collection of vehicle sessions and handles heartbeat updates.

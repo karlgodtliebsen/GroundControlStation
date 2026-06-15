@@ -1,6 +1,8 @@
-﻿using DroneGs.MavLink.Messages;
+﻿using DroneGcs.Core.Models;
 
-namespace DroneGcs.Core.MavLink;
+using DroneGs.MavLink.Messages;
+
+namespace DroneGcs.Core.VehicleHandler;
 
 /// <summary>
 /// Handles heartbeat messages and updates the vehicle registry accordingly.
@@ -8,6 +10,7 @@ namespace DroneGcs.Core.MavLink;
 public sealed class HeartbeatVehicleHandler : IHeartbeatVehicleHandler
 {
     private readonly IVehicleRegistry vehicleRegistry;
+
 
     /// <summary>
     /// 
@@ -18,12 +21,11 @@ public sealed class HeartbeatVehicleHandler : IHeartbeatVehicleHandler
         this.vehicleRegistry = vehicleRegistry;
     }
 
+
     /// <inheritdoc />
     public VehicleSession Handle(HeartbeatMessage message)
     {
-        var vehicleId = new VehicleId(
-            message.SystemId,
-            message.ComponentId);
+        var vehicleId = new VehicleId(message.SystemId, message.ComponentId);
 
         return vehicleRegistry.RegisterOrUpdateHeartbeat(
             vehicleId,

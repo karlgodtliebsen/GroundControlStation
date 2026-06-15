@@ -1,4 +1,4 @@
-﻿namespace DroneGcs.Core;
+﻿namespace DroneGcs.Core.Models;
 
 /// <summary>
 /// Represents the connection state of a vehicle.

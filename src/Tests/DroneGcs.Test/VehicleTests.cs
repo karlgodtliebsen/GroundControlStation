@@ -3,7 +3,8 @@
 using Domain.Library.Factory.Domain.Abstractions;
 
 using DroneGcs.Core;
-using DroneGcs.Core.MavLink;
+using DroneGcs.Core.Models;
+using DroneGcs.Core.VehicleHandler;
 using DroneGcs.Test.Configuration;
 using DroneGcs.Transport;
 
@@ -445,6 +446,57 @@ public class VehicleTests
         Assert.Equal(0, ack.Result);
     }
 
+    [Fact]
+    public void Should_Update_Armed_State_From_Heartbeat_BaseMode()
+    {
+        var services = TestConfigurator.AddTestConfiguration().BuildServiceProvider();
+        services.UseTestConfiguration();
+        var domainFactory = services.GetRequiredService<IDomainFactory>();
+        var registry = services.GetRequiredService<IVehicleRegistry>();
+        var handler = domainFactory.Create<IHeartbeatVehicleHandler, IVehicleRegistry>(registry);
+
+
+        var heartbeat = new HeartbeatMessage(
+            1, 1,
+            0,
+            2,
+            3,
+            128,
+            4,
+            3,
+            DateTimeOffset.UtcNow);
+
+        var vehicle = handler.Handle(heartbeat);
+
+        Assert.True(vehicle.State.IsArmed);
+    }
+
+    /// <summary>
+    /// 
+    /// </summary>
+    [Fact]
+    public void Should_Update_Mode_From_Heartbeat_CustomMode()
+    {
+        var services = TestConfigurator.AddTestConfiguration().BuildServiceProvider();
+        services.UseTestConfiguration();
+        var domainFactory = services.GetRequiredService<IDomainFactory>();
+        var registry = services.GetRequiredService<IVehicleRegistry>();
+        var handler = domainFactory.Create<IHeartbeatVehicleHandler, IVehicleRegistry>(registry);
+
+        var heartbeat = new HeartbeatMessage(
+            1, 1,
+            4,
+            2,
+            3,
+            0,
+            4,
+            3,
+            DateTimeOffset.UtcNow);
+
+        var vehicle = handler.Handle(heartbeat);
+
+        Assert.Equal(VehicleMode.Guided, vehicle.State.Mode);
+    }
 
     private static async Task EventuallyAsync(Action assertion, TimeSpan timeout, CancellationToken cancellationToken)
     {

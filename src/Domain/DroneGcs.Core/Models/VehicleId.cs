@@ -1,4 +1,4 @@
-﻿namespace DroneGcs.Core;
+﻿namespace DroneGcs.Core.Models;
 
 /// <summary>
 /// Represents the unique identifier of a vehicle, consisting of a system ID and a component ID.

@@ -1,4 +1,4 @@
-﻿namespace DroneGcs.Core;
+﻿namespace DroneGcs.Core.Models;
 
 /// <summary>
 /// Represents the state of a vehicle.
@@ -12,6 +12,8 @@
 /// <param name="MavLinkVersion">The MAVLink version of the vehicle.</param>
 /// <param name="ConnectionState">The connection state of the vehicle.</param>
 /// <param name="LastHeartbeatAt">The timestamp of the last heartbeat received from the vehicle.</param>
+/// <param name="Mode"></param>
+/// <param name="IsArmed"></param>
 public sealed record VehicleState(
     VehicleId VehicleId,
     uint CustomMode,
@@ -21,4 +23,6 @@ public sealed record VehicleState(
     byte SystemStatus,
     byte MavLinkVersion,
     VehicleConnectionState ConnectionState,
-    DateTimeOffset LastHeartbeatAt);
+    DateTimeOffset LastHeartbeatAt,
+    VehicleMode Mode,
+    bool IsArmed);

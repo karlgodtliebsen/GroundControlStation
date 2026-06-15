@@ -1,4 +1,6 @@
-﻿namespace DroneGcs.Core;
+﻿using DroneGcs.Core.Models;
+
+namespace DroneGcs.Core;
 
 /// <summary>
 /// Manages the registration and state of vehicles.
@@ -53,13 +55,13 @@ public sealed class VehicleRegistry : IVehicleRegistry
                 baseMode,
                 systemStatus,
                 mavLinkVersion,
-                VehicleConnectionState.Online,
-                receivedAt);
+                VehicleConnectionState.Unknown,
+                receivedAt,
+                VehicleMode.Unknown,
+                false);
 
             session = new VehicleSession(state);
             vehicles.Add(vehicleId, session);
-
-            return session;
         }
 
         session.ApplyHeartbeat(

@@ -1,4 +1,6 @@
-﻿namespace DroneGcs.Core;
+﻿using DroneGcs.Core.Models;
+
+namespace DroneGcs.Core;
 
 /// <summary>
 /// Represents a session for a vehicle, managing its state and handling updates.
@@ -6,6 +8,8 @@
 public sealed class VehicleSession(VehicleState initialState)
 {
     private VehicleState state = initialState;
+    private const byte MavModeFlagSafetyArmed = 0b1000_0000;
+
 
     /// <summary>
     /// Gets the unique identifier of the vehicle.
@@ -23,10 +27,7 @@ public sealed class VehicleSession(VehicleState initialState)
     /// <param name="now">The current date and time.</param>
     /// <param name="staleAfter">The time span after which the vehicle is considered stale.</param>
     /// <param name="offlineAfter">The time span after which the vehicle is considered offline.</param>
-    public void UpdateConnectionState(
-        DateTimeOffset now,
-        TimeSpan staleAfter,
-        TimeSpan offlineAfter)
+    public void UpdateConnectionState(DateTimeOffset now, TimeSpan staleAfter, TimeSpan offlineAfter)
     {
         var age = now - state.LastHeartbeatAt;
 
@@ -71,8 +72,26 @@ public sealed class VehicleSession(VehicleState initialState)
             BaseMode = baseMode,
             SystemStatus = systemStatus,
             MavLinkVersion = mavLinkVersion,
+            Mode = MapMode(customMode),
+            //IsArmed = (baseMode & 0b1000_0000) != 0,
+            IsArmed = (baseMode & MavModeFlagSafetyArmed) != 0,
             ConnectionState = VehicleConnectionState.Online,
             LastHeartbeatAt = receivedAt
+        };
+    }
+
+
+    private static VehicleMode MapMode(uint customMode)
+    {
+        return customMode switch
+        {
+            0 => VehicleMode.Stabilize,
+            2 => VehicleMode.AltHold,
+            4 => VehicleMode.Guided,
+            5 => VehicleMode.Loiter,
+            6 => VehicleMode.Rtl,
+            9 => VehicleMode.Land,
+            var _ => VehicleMode.Unknown
         };
     }
 }
