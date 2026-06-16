@@ -18,10 +18,7 @@ public sealed class SerialMavLinkTransport : IMavLinkTransport
     /// <exception cref="ArgumentException">Thrown when the port name is null or whitespace.</exception>
     public SerialMavLinkTransport(string portName, int baudRate = 115200)
     {
-        if (string.IsNullOrWhiteSpace(portName))
-        {
-            throw new ArgumentException("Port name must be specified.", nameof(portName));
-        }
+        if (string.IsNullOrWhiteSpace(portName)) throw new ArgumentException("LocalPort name must be specified.", nameof(portName));
 
         serialPort = new SerialPort(
             portName,
@@ -45,10 +42,7 @@ public sealed class SerialMavLinkTransport : IMavLinkTransport
     {
         cancellationToken.ThrowIfCancellationRequested();
 
-        if (!serialPort.IsOpen)
-        {
-            serialPort.Open();
-        }
+        if (!serialPort.IsOpen) serialPort.Open();
 
         return Task.CompletedTask;
     }
@@ -58,10 +52,7 @@ public sealed class SerialMavLinkTransport : IMavLinkTransport
         Memory<byte> buffer,
         CancellationToken cancellationToken)
     {
-        if (!IsConnected)
-        {
-            throw new InvalidOperationException("Serial port is closed.");
-        }
+        if (!IsConnected) throw new InvalidOperationException("Serial port is closed.");
 
         var bytesRead = await serialPort.BaseStream
             .ReadAsync(buffer, cancellationToken)
@@ -75,10 +66,7 @@ public sealed class SerialMavLinkTransport : IMavLinkTransport
         ReadOnlyMemory<byte> data,
         CancellationToken cancellationToken)
     {
-        if (!IsConnected)
-        {
-            throw new InvalidOperationException("Serial port is closed.");
-        }
+        if (!IsConnected) throw new InvalidOperationException("Serial port is closed.");
 
         await serialPort.BaseStream
             .WriteAsync(data, cancellationToken)
@@ -90,10 +78,7 @@ public sealed class SerialMavLinkTransport : IMavLinkTransport
     {
         cancellationToken.ThrowIfCancellationRequested();
 
-        if (serialPort.IsOpen)
-        {
-            serialPort.Close();
-        }
+        if (serialPort.IsOpen) serialPort.Close();
 
         return Task.CompletedTask;
     }
@@ -101,10 +86,7 @@ public sealed class SerialMavLinkTransport : IMavLinkTransport
     /// <inheritdoc />
     public ValueTask DisposeAsync()
     {
-        if (serialPort.IsOpen)
-        {
-            serialPort.Close();
-        }
+        if (serialPort.IsOpen) serialPort.Close();
 
         serialPort.Dispose();
         GC.SuppressFinalize(this);

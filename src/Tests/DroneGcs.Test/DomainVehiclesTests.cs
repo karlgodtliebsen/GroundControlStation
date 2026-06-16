@@ -4,20 +4,20 @@ using DroneGcs.Test.Configuration;
 
 using Microsoft.Extensions.DependencyInjection;
 
-namespace DroneGcs.Test.DomainEventsTests;
+namespace DroneGcs.Test;
 
 /// <summary>
 /// Tests for the domain layer implementations.
 /// </summary>
-public class DomainTests
+public class DomainVehiclesTests
 {
     private readonly ITestOutputHelper output;
 
     /// <summary>
-    /// Initializes a new instance of the <see cref="DomainTests"/> class.
+    /// Initializes a new instance of the <see cref="DomainVehiclesTests"/> class.
     /// </summary>
     /// <param name="output">The test output helper.</param>
-    public DomainTests(ITestOutputHelper output)
+    public DomainVehiclesTests(ITestOutputHelper output)
     {
         this.output = output;
     }

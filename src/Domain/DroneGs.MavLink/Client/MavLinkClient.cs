@@ -1,5 +1,7 @@
 ﻿using DroneGcs.Transport;
 
+using Microsoft.Extensions.Options;
+
 namespace DroneGs.MavLink.Client;
 
 /// <summary>
@@ -33,19 +35,18 @@ public sealed class MavLinkClient : IMavLinkClient
     /// Initializes a new instance of the <see cref="MavLinkClient"/> class.
     /// </summary>
     /// <param name="transport">The MAVLink transport to use for communication.</param>
-    /// <param name="receiveBufferSize">The size of the buffer used for receiving data.</param>
+    /// <param name="options">The options for configuring the MAVLink client.</param>
     /// <exception cref="ArgumentNullException">Thrown if <paramref name="transport"/> is null.</exception>
-    /// <exception cref="ArgumentOutOfRangeException">Thrown if <paramref name="receiveBufferSize"/> is not positive.</exception>
-    public MavLinkClient(IMavLinkTransport transport, int receiveBufferSize = 512)
+    /// <exception cref="ArgumentOutOfRangeException">Thrown if <paramref name="options"/> is null or contains invalid values.</exception>
+    public MavLinkClient(IMavLinkTransport transport, IOptions<TransportEndpoint> options)
     {
         this.transport = transport ?? throw new ArgumentNullException(nameof(transport));
+        receiveBufferSize = options.Value.ReceiveBufferSize;
 
         if (receiveBufferSize <= 0)
         {
             throw new ArgumentOutOfRangeException(nameof(receiveBufferSize), "Receive buffer size must be positive.");
         }
-
-        this.receiveBufferSize = receiveBufferSize;
     }
 
     /// <summary>

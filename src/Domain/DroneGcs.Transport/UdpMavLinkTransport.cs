@@ -1,6 +1,8 @@
 ﻿using System.Net;
 using System.Net.Sockets;
 
+using Microsoft.Extensions.Options;
+
 namespace DroneGcs.Transport;
 
 /// <inheritdoc />
@@ -9,19 +11,23 @@ public sealed class UdpMavLinkTransport : IMavLinkTransport
     private readonly UdpClient udpClient;
     private readonly IPEndPoint remoteEndPoint;
     private readonly MavLinkEndpoint localEndpoint;
-
+    private readonly TransportEndpoint endpoint;
     private volatile bool isConnected;
 
     /// <summary>
     /// 
     /// </summary>
-    /// <param name="localPort"></param>
-    /// <param name="remoteHost"></param>
-    /// <param name="remotePort"></param>
     /// <exception cref="ArgumentOutOfRangeException"></exception>
     /// <exception cref="ArgumentException"></exception>
-    public UdpMavLinkTransport(int localPort, string remoteHost, int remotePort)
+    public UdpMavLinkTransport(IOptions<TransportEndpoint> options)
     {
+        endpoint = options.Value;
+
+        var localPort = endpoint.LocalPort;
+        var remoteHost = endpoint.RemoteHost;
+        var remotePort = endpoint.RemotePort;
+        var localHost = endpoint.LocalHost;
+
         if (localPort is <= 0 or > 65535)
         {
             throw new ArgumentOutOfRangeException(nameof(localPort));
@@ -37,12 +43,16 @@ public sealed class UdpMavLinkTransport : IMavLinkTransport
             throw new ArgumentException("Remote host must be specified.", nameof(remoteHost));
         }
 
-        udpClient = new UdpClient(localPort);
+        var localAddress = string.IsNullOrWhiteSpace(localHost)
+            ? IPAddress.Any
+            : IPAddress.Parse(localHost);
+
+        udpClient = new UdpClient(
+            new IPEndPoint(localAddress, localPort));
 
         var remoteAddress = IPAddress.Parse(remoteHost);
         remoteEndPoint = new IPEndPoint(remoteAddress, remotePort);
-
-        localEndpoint = new MavLinkEndpoint("udp", "0.0.0.0", localPort);
+        localEndpoint = new MavLinkEndpoint(endpoint.Protocol, localHost, localPort);
     }
 
     /// <inheritdoc />
@@ -71,7 +81,7 @@ public sealed class UdpMavLinkTransport : IMavLinkTransport
 
         result.Buffer.AsMemory(0, bytesToCopy).CopyTo(buffer);
 
-        var remoteEndpoint = new MavLinkEndpoint("udp", result.RemoteEndPoint.Address.ToString(), result.RemoteEndPoint.Port);
+        var remoteEndpoint = new MavLinkEndpoint(endpoint.Protocol, result.RemoteEndPoint.Address.ToString(), result.RemoteEndPoint.Port);
 
         return new TransportReceiveResult(bytesToCopy, remoteEndpoint);
     }

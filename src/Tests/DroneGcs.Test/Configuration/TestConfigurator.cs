@@ -56,7 +56,6 @@ public static class TestConfigurator
     {
         services
             .UseMavLinkConfiguration()
-            .UseMavLinkTransportConfiguration()
             .UseDomainConfiguration()
             ;
         return services;

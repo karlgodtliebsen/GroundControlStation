@@ -3,7 +3,6 @@
 using Domain.Library.EventHub.Abstractions;
 using Domain.Library.Factory.Domain.Abstractions;
 
-using DroneGcs.Core;
 using DroneGcs.Core.Models;
 using DroneGcs.Core.Services;
 using DroneGcs.Core.VehicleHandler;
@@ -19,6 +18,7 @@ using DroneGs.MavLink.Messages;
 using DroneGs.MavLink.Services;
 
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Options;
 
 namespace DroneGcs.Test;
 
@@ -78,26 +78,19 @@ public class VehicleTests
     {
         var services = TestConfigurator.AddTestConfiguration().BuildServiceProvider();
         services.UseTestConfiguration();
-        var domainFactory = services.GetRequiredService<IDomainFactory>();
-        var parser = services.GetRequiredService<IMavLinkFrameParser>();
-        var decoder = domainFactory.Create<IMavLinkMessageDecoder, IMavLinkMessageDecoder[]>([new HeartbeatMessageDecoder()]);
-        var transport = domainFactory.Create<IMavLinkTransport, int, string, int>(14550, "127.0.0.1", 14551);
 
         var registry = services.GetRequiredService<IVehicleRegistry>();
-        var handler = domainFactory.Create<IHeartbeatVehicleHandler, IVehicleRegistry>(registry);
-
-        await using var client = domainFactory.Create<IMavLinkClient, IMavLinkTransport>(transport);
-        await using var connection = domainFactory.Create<IMavLinkConnection, IMavLinkClient, IMavLinkFrameParser, IMavLinkMessageDecoder>(client, parser, decoder);
+        var handler = services.GetRequiredService<IHeartbeatVehicleHandler>();
+        await using var client = services.GetRequiredService<IMavLinkClient>();
+        await using var connection = services.GetRequiredService<IMavLinkConnection>();
 
         await connection.StartAsync(TestContext.Current.CancellationToken);
 
         output.WriteLine($"Client IsRunning: {client.IsRunning}");
         output.WriteLine($"Transport IsConnected: {client.IsConnected}");
-        await using var simulator =
-            new FakeMavLinkVehicle2(
-                "127.0.0.1",
-                14550,
-                TimeSpan.FromMilliseconds(100));
+        await using var simulator = new FakeMavLinkVehicle2(
+            services.GetRequiredService<IMavLinkFrameParser>(),
+            services.GetRequiredService<IMavLinkCrcExtraProvider>(), "127.0.0.1", 14550, TimeSpan.FromMilliseconds(100));
 
         await simulator.StartAsync(TestContext.Current.CancellationToken);
 
@@ -155,44 +148,28 @@ public class VehicleTests
         var services = TestConfigurator.AddTestConfiguration().BuildServiceProvider();
         services.UseTestConfiguration();
 
-        var domainFactory = services.GetRequiredService<IDomainFactory>();
-
-        var parser = services.GetRequiredService<IMavLinkFrameParser>();
-        var decoder = domainFactory.Create<IMavLinkMessageDecoder, IMavLinkMessageDecoder[]>(
-            [new HeartbeatMessageDecoder()]);
-
-        var transport = domainFactory.Create<IMavLinkTransport, int, string, int>(
-            14550, "127.0.0.1", 14551);
-
         var registry = services.GetRequiredService<IVehicleRegistry>();
 
-        await using var client =
-            domainFactory.Create<IMavLinkClient, IMavLinkTransport>(transport);
-
-        await using var connection =
-            domainFactory.Create<IMavLinkConnection, IMavLinkClient, IMavLinkFrameParser, IMavLinkMessageDecoder>(
-                client,
-                parser,
-                decoder);
+        await using var client = services.GetRequiredService<IMavLinkClient>();
+        await using var connection = services.GetRequiredService<IMavLinkConnection>();
 
         await connection.StartAsync(TestContext.Current.CancellationToken);
 
 
-        var pump = domainFactory.Create<IVehicleMessagePump, IMavLinkConnection,
-            IHeartbeatVehicleHandler, IPositionVehicleHandler, IAttitudeVehicleHandler, IBatteryVehicleHandler>(
-            connection,
-            services.GetRequiredService<IHeartbeatVehicleHandler>(),
-            services.GetRequiredService<IPositionVehicleHandler>(),
-            services.GetRequiredService<IAttitudeVehicleHandler>(),
-            services.GetRequiredService<IBatteryVehicleHandler>());
+        //var pump = domainFactory.Create<IVehicleMessagePump, IMavLinkConnection,
+        //    IHeartbeatVehicleHandler, IPositionVehicleHandler, IAttitudeVehicleHandler, IBatteryVehicleHandler>(
+        //    connection,
+        //    services.GetRequiredService<IHeartbeatVehicleHandler>(),
+        //    services.GetRequiredService<IPositionVehicleHandler>(),
+        //    services.GetRequiredService<IAttitudeVehicleHandler>(),
+        //    services.GetRequiredService<IBatteryVehicleHandler>());
+        var pump = services.GetRequiredService<IVehicleMessagePump>();
 
         var pumpTask = pump.StartAsync(TestContext.Current.CancellationToken);
+        await using var simulator = new FakeMavLinkVehicle2(
+            services.GetRequiredService<IMavLinkFrameParser>(),
+            services.GetRequiredService<IMavLinkCrcExtraProvider>(), "127.0.0.1", 14550, TimeSpan.FromMilliseconds(100));
 
-        await using var simulator =
-            new FakeMavLinkVehicle2(
-                "127.0.0.1",
-                14550,
-                TimeSpan.FromMilliseconds(100));
 
         await simulator.StartAsync(TestContext.Current.CancellationToken);
 
@@ -436,7 +413,7 @@ public class VehicleTests
     }
 
     /// <summary>
-    /// 
+    /// Tests that an arm command is correctly encoded into a MAVLink CommandLong frame. 
     /// </summary>
     [Fact]
     public void Should_Encode_Arm_CommandLong_Frame()
@@ -472,17 +449,15 @@ public class VehicleTests
     }
 
     /// <summary>
-    /// 
+    /// Tests that a CommandAck message is correctly decoded from a MAVLink frame. 
     /// </summary>
     [Fact]
     public void Should_Decode_CommandAck_Message()
     {
         var services = TestConfigurator.AddTestConfiguration().BuildServiceProvider();
         services.UseTestConfiguration();
-        var domainFactory = services.GetRequiredService<IDomainFactory>();
 
         var receivedAt = DateTimeOffset.UtcNow;
-
         var payload = new byte[]
         {
             0x90, 0x01, // 400 COMPONENT_ARM_DISARM
@@ -513,7 +488,7 @@ public class VehicleTests
     }
 
     /// <summary>
-    /// 
+    /// Tests that sending an arm command results in receiving a command acknowledgment from the simulator. 
     /// </summary>
     [Fact]
     public async Task Should_Receive_CommandAck_When_Arm_Command_Is_Sent()
@@ -521,54 +496,32 @@ public class VehicleTests
         var services = TestConfigurator.AddTestConfiguration().BuildServiceProvider();
         services.UseTestConfiguration();
 
-        var domainFactory = services.GetRequiredService<IDomainFactory>();
+        var options = services.GetRequiredService<IOptions<TransportEndpoint>>();
+        var endpoint = options.Value;
 
-        var parser = services.GetRequiredService<IMavLinkFrameParser>();
+        output.WriteLine($"UDP local: {endpoint.LocalHost}:{endpoint.LocalPort}");
+        output.WriteLine($"UDP remote: {endpoint.RemoteHost}:{endpoint.RemotePort}");
 
-        var decoder = domainFactory.Create<IMavLinkMessageDecoder, IMavLinkMessageDecoder[]>(
-        [
-            new HeartbeatMessageDecoder(),
-            new CommandAckMessageDecoder()
-        ]);
-
-        var transport = domainFactory.Create<IMavLinkTransport, int, string, int>(
-            14550,
-            "127.0.0.1",
-            14551);
-
-        await using var client =
-            domainFactory.Create<IMavLinkClient, IMavLinkTransport>(transport);
-
-        await using var connection =
-            domainFactory.Create<IMavLinkConnection, IMavLinkClient, IMavLinkFrameParser, IMavLinkMessageDecoder>(
-                client,
-                parser,
-                decoder);
-
+        await using var client = services.GetRequiredService<IMavLinkClient>();
+        await using var connection = services.GetRequiredService<IMavLinkConnection>();
         await connection.StartAsync(TestContext.Current.CancellationToken);
 
         await using var simulator =
             new FakeMavLinkVehicle2(
-                "127.0.0.1",
-                14550,
+                services.GetRequiredService<IMavLinkFrameParser>(),
+                services.GetRequiredService<IMavLinkCrcExtraProvider>(),
+                endpoint.LocalHost,
+                endpoint.LocalPort,
                 TimeSpan.FromMilliseconds(100),
-                14551);
+                endpoint.RemotePort);
 
         await simulator.StartAsync(TestContext.Current.CancellationToken);
 
-        //var encoder = new MavLinkCommandEncoder(
-        //    new CommonMavLinkCrcExtraProvider());
         var encoder = services.GetRequiredService<IMavLinkCommandEncoder>();
 
+        var armCommand = encoder.EncodeArmDisarm(1, 1, true);
 
-        var armCommand = encoder.EncodeArmDisarm(
-            1,
-            1,
-            true);
-
-        await connection.SendRawAsync(
-            armCommand,
-            TestContext.Current.CancellationToken);
+        await connection.SendRawAsync(armCommand, TestContext.Current.CancellationToken);
 
         var ack = await connection
             .ReadMessagesAsync(TestContext.Current.CancellationToken)
@@ -583,16 +536,16 @@ public class VehicleTests
         Assert.Equal(0, ack.Result);
     }
 
+    /// <summary>
+    /// Tests that the armed state is correctly updated from the heartbeat base mode.
+    /// </summary>
     [Fact]
     public void Should_Update_Armed_State_From_Heartbeat_BaseMode()
     {
         var services = TestConfigurator.AddTestConfiguration().BuildServiceProvider();
         services.UseTestConfiguration();
-        var domainFactory = services.GetRequiredService<IDomainFactory>();
         var registry = services.GetRequiredService<IVehicleRegistry>();
-        var handler = domainFactory.Create<IHeartbeatVehicleHandler, IVehicleRegistry>(registry);
-
-
+        var handler = services.GetRequiredService<IHeartbeatVehicleHandler>();
         var heartbeat = new HeartbeatMessage(
             1, 1,
             0,
@@ -609,7 +562,7 @@ public class VehicleTests
     }
 
     /// <summary>
-    /// 
+    /// Tests that the vehicle mode is correctly updated from the heartbeat custom mode. 
     /// </summary>
     [Fact]
     public void Should_Update_Mode_From_Heartbeat_CustomMode()
@@ -643,8 +596,7 @@ public class VehicleTests
     {
         var services = TestConfigurator.AddTestConfiguration().BuildServiceProvider();
         services.UseTestConfiguration();
-        var eventHub = services.GetRequiredService<IEventHub>();
-        var vehicle = CreateVehicleSession(eventHub);
+        var vehicle = CreateVehicleSession();
 
         vehicle.ApplyPosition(
             56.1629,
@@ -665,8 +617,7 @@ public class VehicleTests
     {
         var services = TestConfigurator.AddTestConfiguration().BuildServiceProvider();
         services.UseTestConfiguration();
-        var eventHub = services.GetRequiredService<IEventHub>();
-        var vehicle = CreateVehicleSession(eventHub);
+        var vehicle = CreateVehicleSession();
 
         vehicle.ApplyAttitude(0.1, -0.2, 1.5);
 
@@ -684,8 +635,7 @@ public class VehicleTests
     {
         var services = TestConfigurator.AddTestConfiguration().BuildServiceProvider();
         services.UseTestConfiguration();
-        var eventHub = services.GetRequiredService<IEventHub>();
-        var vehicle = CreateVehicleSession(eventHub);
+        var vehicle = CreateVehicleSession();
 
         vehicle.ApplyBattery(87, 11.4f);
 
@@ -694,7 +644,7 @@ public class VehicleTests
     }
 
 
-    private static VehicleSession CreateVehicleSession(IEventHub eventHub)
+    private static VehicleSession CreateVehicleSession()
     {
         var state = new VehicleState(
             new VehicleId(1, 1),

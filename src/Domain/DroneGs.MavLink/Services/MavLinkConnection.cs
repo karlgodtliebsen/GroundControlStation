@@ -12,17 +12,15 @@ namespace DroneGs.MavLink.Services;
 /// </summary>
 public sealed class MavLinkConnection : IMavLinkConnection
 {
-    private readonly MavLinkClient client;
+    private readonly IMavLinkClient client;
     private readonly IMavLinkFrameParser frameParser;
     private readonly IMavLinkMessageDecoder messageDecoder;
 
-    private readonly Channel<MavLinkFrame> frames =
-        Channel.CreateUnbounded<MavLinkFrame>(
-            new UnboundedChannelOptions
-            {
-                SingleReader = false,
-                SingleWriter = true
-            });
+    private readonly Channel<MavLinkFrame> frames = Channel.CreateUnbounded<MavLinkFrame>(new UnboundedChannelOptions
+    {
+        SingleReader = false,
+        SingleWriter = true
+    });
 
     /// <summary>
     /// 
@@ -31,7 +29,7 @@ public sealed class MavLinkConnection : IMavLinkConnection
     /// <param name="frameParser"></param>
     /// <param name="messageDecoder"></param>
     /// <exception cref="ArgumentNullException"></exception>
-    public MavLinkConnection(MavLinkClient client, IMavLinkFrameParser frameParser, IMavLinkMessageDecoder messageDecoder)
+    public MavLinkConnection(IMavLinkClient client, IMavLinkFrameParser frameParser, IMavLinkMessageDecoder messageDecoder)
     {
         this.client = client ?? throw new ArgumentNullException(nameof(client));
         this.frameParser = frameParser ?? throw new ArgumentNullException(nameof(frameParser));
@@ -83,15 +81,12 @@ public sealed class MavLinkConnection : IMavLinkConnection
     /// <param name="cancellationToken">A cancellation token to cancel the operation.</param>
     public async ValueTask SendRawAsync(ReadOnlyMemory<byte> data, CancellationToken cancellationToken = default)
     {
-        await client.SendAsync(data, cancellationToken)
-            .ConfigureAwait(false);
+        await client.SendAsync(data, cancellationToken).ConfigureAwait(false);
     }
 
     private ValueTask OnDataReceivedAsync(MavLinkDataReceived received, CancellationToken cancellationToken)
     {
-        var parsedFrames = frameParser.Parse(
-            received.Data.Span,
-            received.ReceivedAt);
+        var parsedFrames = frameParser.Parse(received.Data.Span, received.ReceivedAt);
 
         foreach (var frame in parsedFrames)
         {

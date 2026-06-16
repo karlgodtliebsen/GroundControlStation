@@ -1,8 +1,10 @@
 ﻿using Domain.Library.Factory.Domain.Abstractions;
+
 using DroneGs.MavLink.Client;
 using DroneGs.MavLink.Decoding;
 using DroneGs.MavLink.Encoding;
 using DroneGs.MavLink.Services;
+
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
@@ -22,12 +24,25 @@ public static class MavLinkConfigurator
     /// <returns>The updated service collection.</returns>
     public static IServiceCollection AddMavLinkConfiguration(this IServiceCollection services, IConfiguration configuration)
     {
-        services.TryAddSingleton<IMavLinkMessageDecoder, MavLinkMessageDecoder>();
         services.TryAddSingleton<IMavLinkCrcExtraProvider, CommonMavLinkCrcExtraProvider>();
         services.TryAddSingleton<IMavLinkFrameParser, MavLinkV2FrameParser>();
         services.TryAddSingleton<IMavLinkConnection, MavLinkConnection>();
         services.TryAddSingleton<IMavLinkClient, MavLinkClient>();
         services.TryAddSingleton<IMavLinkCommandEncoder, MavLinkCommandEncoder>();
+        services.TryAddSingleton<IMavLinkMessageDecoder, MavLinkMessageDecoder>();
+
+        IList<IMavLinkMessageDecoder> decoders =
+        [
+            new HeartbeatMessageDecoder(),
+            new CommandAckMessageDecoder(),
+            new AttitudeMessageDecoder(),
+            new GlobalPositionIntMessageDecoder(),
+            new SysStatusMessageDecoder()
+        ];
+
+
+        services.TryAddSingleton(new MavLinkMessageDecoders(decoders));
+
         return services;
     }
 
@@ -39,9 +54,8 @@ public static class MavLinkConfigurator
     public static IServiceProvider UseMavLinkConfiguration(this IServiceProvider services)
     {
         var domainFactory = services.GetRequiredService<IDomainFactory>();
-        domainFactory.Add<IMavLinkMessageDecoder, MavLinkMessageDecoder>();
-        domainFactory.Add<IMavLinkConnection, MavLinkConnection>();
-        domainFactory.Add<IMavLinkClient, MavLinkClient>();
+        //domainFactory.Add<IMavLinkMessageDecoder, MavLinkMessageDecoder>();
+        //domainFactory.Add<IMavLinkClient, MavLinkClient>();
         return services;
     }
 }

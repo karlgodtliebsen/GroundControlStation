@@ -1,5 +1,4 @@
 ﻿using DroneGcs.Core.Commands;
-using DroneGcs.Core.DomainEvents;
 using DroneGcs.Core.Models;
 
 namespace DroneGcs.Core.Services;
@@ -9,8 +8,7 @@ namespace DroneGcs.Core.Services;
 /// </summary>
 /// <param name="registry"></param>
 /// <param name="commandService"></param>
-/// <param name="eventHub"></param>
-public sealed class VehicleService(IVehicleRegistry registry, IVehicleCommandService commandService, IDomainEventHub eventHub) : IVehicleService
+public sealed class VehicleService(IVehicleRegistry registry, IVehicleCommandService commandService) : IVehicleService
 {
     /// <inheritdoc />
     public IReadOnlyCollection<VehicleState> GetVehicles()
@@ -31,9 +29,7 @@ public sealed class VehicleService(IVehicleRegistry registry, IVehicleCommandSer
     {
         EnsureVehicleExists(vehicleId);
 
-        return commandService.ArmAsync(
-            vehicleId,
-            cancellationToken);
+        return commandService.ArmAsync(vehicleId, cancellationToken);
     }
 
     /// <inheritdoc />
@@ -41,9 +37,7 @@ public sealed class VehicleService(IVehicleRegistry registry, IVehicleCommandSer
     {
         EnsureVehicleExists(vehicleId);
 
-        return commandService.DisarmAsync(
-            vehicleId,
-            cancellationToken);
+        return commandService.DisarmAsync(vehicleId, cancellationToken);
     }
 
     /// <inheritdoc />  
@@ -51,10 +45,7 @@ public sealed class VehicleService(IVehicleRegistry registry, IVehicleCommandSer
     {
         EnsureVehicleExists(vehicleId);
 
-        return commandService.SetModeAsync(
-            vehicleId,
-            mode,
-            cancellationToken);
+        return commandService.SetModeAsync(vehicleId, mode, cancellationToken);
     }
 
     private void EnsureVehicleExists(VehicleId vehicleId)

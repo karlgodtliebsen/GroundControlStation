@@ -1,8 +1,7 @@
-﻿using Domain.Library.Factory.Domain.Abstractions;
-
-using Microsoft.Extensions.Configuration;
+﻿using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
+using Microsoft.Extensions.Options;
 
 namespace DroneGcs.Transport.Configuration;
 
@@ -20,7 +19,10 @@ public static class MavLinkTransportConfigurator
     public static IServiceCollection AddMavLinkTransportConfiguration(this IServiceCollection services, IConfiguration configuration)
     {
         services.TryAddSingleton<IMavLinkTransport, UdpMavLinkTransport>();
-        //UdpMavLinkTransport
+
+        //TODO: must be based on  configuration data
+        services.AddSingleton(Options.Create(new TransportEndpoint("udp", 14551, "127.0.0.1", 14550)));
+
         return services;
     }
 
@@ -31,9 +33,6 @@ public static class MavLinkTransportConfigurator
     /// <returns>The updated service provider.</returns>
     public static IServiceProvider UseMavLinkTransportConfiguration(this IServiceProvider services)
     {
-        var domainFactory = services.GetRequiredService<IDomainFactory>();
-        domainFactory.Add<IMavLinkTransport, UdpMavLinkTransport>();
-
         return services;
     }
 }
