@@ -27,10 +27,28 @@ public sealed class VehicleCommandService(IMavLinkConnection connection, IMavLin
     }
 
     /// <inheritdoc />
-    public Task<VehicleCommandResponse> SetModeAsync(VehicleId vehicleId, VehicleMode mode, CancellationToken cancellationToken)
+    public async Task<VehicleCommandResponse> SetModeAsync(VehicleId vehicleId, VehicleMode mode, CancellationToken cancellationToken)
     {
-        throw new NotImplementedException();
+        var customMode = ArduCopterModeMapper.ToCustomMode(mode);
+
+        var waitForAckTask = commandAckTracker.WaitForAckAsync(vehicleId, MavLinkCommandIds.DoSetMode, CommandAckTimeout, cancellationToken);
+
+        var packet = encoder.EncodeSetMode(vehicleId.SystemId, vehicleId.ComponentId, customMode);
+
+        await connection.SendRawAsync(packet, cancellationToken);
+
+        try
+        {
+            var ack = await waitForAckTask.ConfigureAwait(false);
+
+            return new VehicleCommandResponse(vehicleId, MapResult(ack.Result), ack.ReceivedAt);
+        }
+        catch (TimeoutException)
+        {
+            return new VehicleCommandResponse(vehicleId, VehicleCommandResult.Timeout, DateTimeOffset.UtcNow);
+        }
     }
+
 
     private async Task<VehicleCommandResponse> SendArmDisarmAsync(VehicleId vehicleId, bool arm, CancellationToken cancellationToken)
     {

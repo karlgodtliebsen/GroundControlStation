@@ -46,11 +46,43 @@ public sealed class MavLinkCommandEncoder(IMavLinkCrcExtraProvider crcExtraProvi
             payload);
     }
 
-    private byte[] BuildV2Packet(
-        byte systemId,
-        byte componentId,
-        uint messageId,
-        ReadOnlySpan<byte> payload)
+
+    /// <inheritdoc />
+    public byte[] EncodeSetMode(byte targetSystemId, byte targetComponentId, uint customMode)
+    {
+        Span<byte> payload = stackalloc byte[33];
+
+        // COMMAND_LONG payload:
+        // float param1..param7
+        // uint16 command
+        // uint8 target_system
+        // uint8 target_component
+        // uint8 confirmation
+        //
+        // MAV_CMD_DO_SET_MODE:
+        // param1 = MAV_MODE_FLAG_CUSTOM_MODE_ENABLED
+        // param2 = custom mode
+        // param3 = custom submode, unused here
+
+        WriteFloat(payload[0..4], 1.0f); // param1
+        WriteFloat(payload[4..8], customMode); // param2
+        WriteFloat(payload[8..12], 0);
+        WriteFloat(payload[12..16], 0);
+        WriteFloat(payload[16..20], 0);
+        WriteFloat(payload[20..24], 0);
+        WriteFloat(payload[24..28], 0);
+
+        BinaryPrimitives.WriteUInt16LittleEndian(payload[28..30], MavLinkCommandIds.DoSetMode);
+
+        payload[30] = targetSystemId;
+        payload[31] = targetComponentId;
+        payload[32] = 0;
+
+        return BuildV2Packet(255, 190, MessageIds.CommandLong, payload);
+    }
+
+
+    private byte[] BuildV2Packet(byte systemId, byte componentId, uint messageId, ReadOnlySpan<byte> payload)
     {
         var packetLength = 10 + payload.Length + 2;
         var packet = new byte[packetLength];

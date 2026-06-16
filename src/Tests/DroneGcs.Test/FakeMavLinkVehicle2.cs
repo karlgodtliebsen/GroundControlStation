@@ -27,6 +27,7 @@ public sealed class FakeMavLinkVehicle2 : IAsyncDisposable
     private Task? receiveTask = null;
     private byte sequence;
     private VehicleState state;
+    private readonly bool acknowledgeCommands;
 
     /// <summary>
     /// Initializes a new instance of the <see cref="FakeMavLinkVehicle2"/> class.
@@ -37,11 +38,13 @@ public sealed class FakeMavLinkVehicle2 : IAsyncDisposable
     /// <param name="targetPort">The port of the target endpoint.</param>
     /// <param name="localPort">The local port to bind the UDP client to.</param>
     /// <param name="heartbeatInterval">The interval at which heartbeat messages are sent.</param>
-    public FakeMavLinkVehicle2(IMavLinkFrameParser frameParser, IMavLinkCrcExtraProvider crcExtraProvider, string targetIp, int targetPort, int localPort, TimeSpan? heartbeatInterval = null)
+    /// <param name="acknowledgeCommands">Whether to acknowledge commands.</param>
+    public FakeMavLinkVehicle2(IMavLinkFrameParser frameParser, IMavLinkCrcExtraProvider crcExtraProvider, string targetIp, int targetPort, int localPort,
+        TimeSpan? heartbeatInterval = null, bool acknowledgeCommands = true)
     {
         this.frameParser = frameParser;
         this.crcExtraProvider = crcExtraProvider;
-
+        this.acknowledgeCommands = acknowledgeCommands;
         targetEndpoint = new IPEndPoint(IPAddress.Parse(targetIp), targetPort);
 
         udpClient = new UdpClient(new IPEndPoint(IPAddress.Any, localPort));
@@ -91,9 +94,7 @@ public sealed class FakeMavLinkVehicle2 : IAsyncDisposable
     {
         while (!cancellationToken.IsCancellationRequested)
         {
-            var result = await udpClient
-                .ReceiveAsync(cancellationToken)
-                .ConfigureAwait(false);
+            var result = await udpClient.ReceiveAsync(cancellationToken).ConfigureAwait(false);
 
             var frames = frameParser.Parse(result.Buffer, DateTimeOffset.UtcNow);
 
@@ -107,29 +108,64 @@ public sealed class FakeMavLinkVehicle2 : IAsyncDisposable
         }
     }
 
+    private async Task HandleArmDisarmAsync(MavLinkFrame frame, ushort command, CancellationToken cancellationToken)
+    {
+        var arm = ReadFloat(frame.Payload.Span[0..4]) == 1.0f;
+
+        const byte mavModeFlagSafetyArmed = 0b1000_0000;
+
+        var newBaseMode = arm
+            ? (byte)(state.BaseMode | mavModeFlagSafetyArmed)
+            : (byte)(state.BaseMode & ~mavModeFlagSafetyArmed);
+
+        state = state with
+        {
+            BaseMode = newBaseMode,
+            IsArmed = arm
+        };
+        if (!acknowledgeCommands)
+        {
+            return;
+        }
+
+        var ack = CreateCommandAckV2(command, 0);
+
+        await udpClient.SendAsync(ack, targetEndpoint, cancellationToken).ConfigureAwait(false);
+    }
+
+    private async Task HandleSetModeAsync(MavLinkFrame frame, ushort command, CancellationToken cancellationToken)
+    {
+        var customMode = (uint)ReadFloat(frame.Payload.Span[4..8]);
+
+        state = state with
+        {
+            CustomMode = customMode,
+            Mode = ArduCopterModeMapper.ToVehicleMode(customMode)
+        };
+        if (!acknowledgeCommands)
+        {
+            return;
+        }
+
+        var ack = CreateCommandAckV2(command, 0);
+
+        await udpClient.SendAsync(ack, targetEndpoint, cancellationToken).ConfigureAwait(false);
+    }
+
     private async Task HandleCommandLongAsync(MavLinkFrame frame, CancellationToken cancellationToken)
     {
         var command = BinaryPrimitives.ReadUInt16LittleEndian(frame.Payload.Span[28..30]);
-
         if (command == MavLinkCommandIds.ComponentArmDisarm)
         {
-            var arm = ReadFloat(frame.Payload.Span[0..4]) == 1.0f;
+            await HandleArmDisarmAsync(frame, command, cancellationToken).ConfigureAwait(false);
+            return;
+        }
 
-            const byte mavModeFlagSafetyArmed = 0b1000_0000;
+        if (command == MavLinkCommandIds.DoSetMode)
+        {
+            await HandleSetModeAsync(frame, command, cancellationToken).ConfigureAwait(false);
 
-            var newBaseMode = arm
-                ? (byte)(state.BaseMode | mavModeFlagSafetyArmed)
-                : (byte)(state.BaseMode & ~mavModeFlagSafetyArmed);
-
-            state = state with
-            {
-                BaseMode = newBaseMode,
-                IsArmed = arm
-            };
-
-            var ack = CreateCommandAckV2(command, 0);
-
-            await udpClient.SendAsync(ack, targetEndpoint, cancellationToken).ConfigureAwait(false);
+            return;
         }
     }
 

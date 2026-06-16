@@ -9,4 +9,9 @@ public static class MavLinkCommandIds
     /// 
     /// </summary>
     public const ushort ComponentArmDisarm = 400;
+
+    /// <summary>
+    /// 
+    /// </summary>
+    public const ushort DoSetMode = 176;
 }
