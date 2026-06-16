@@ -28,6 +28,7 @@ public sealed class FakeMavLinkVehicle2 : IAsyncDisposable
     private byte sequence;
     private VehicleState state;
     private readonly bool acknowledgeCommands;
+    private readonly byte commandAckResult;
 
     /// <summary>
     /// Initializes a new instance of the <see cref="FakeMavLinkVehicle2"/> class.
@@ -39,12 +40,14 @@ public sealed class FakeMavLinkVehicle2 : IAsyncDisposable
     /// <param name="localPort">The local port to bind the UDP client to.</param>
     /// <param name="heartbeatInterval">The interval at which heartbeat messages are sent.</param>
     /// <param name="acknowledgeCommands">Whether to acknowledge commands.</param>
+    /// <param name="commandAckResult"></param>
     public FakeMavLinkVehicle2(IMavLinkFrameParser frameParser, IMavLinkCrcExtraProvider crcExtraProvider, string targetIp, int targetPort, int localPort,
-        TimeSpan? heartbeatInterval = null, bool acknowledgeCommands = true)
+        TimeSpan? heartbeatInterval = null, bool acknowledgeCommands = true, byte commandAckResult = 0)
     {
         this.frameParser = frameParser;
         this.crcExtraProvider = crcExtraProvider;
         this.acknowledgeCommands = acknowledgeCommands;
+        this.commandAckResult = commandAckResult;
         targetEndpoint = new IPEndPoint(IPAddress.Parse(targetIp), targetPort);
 
         udpClient = new UdpClient(new IPEndPoint(IPAddress.Any, localPort));
@@ -128,7 +131,7 @@ public sealed class FakeMavLinkVehicle2 : IAsyncDisposable
             return;
         }
 
-        var ack = CreateCommandAckV2(command, 0);
+        var ack = CreateCommandAckV2(command, commandAckResult);
 
         await udpClient.SendAsync(ack, targetEndpoint, cancellationToken).ConfigureAwait(false);
     }
@@ -147,7 +150,7 @@ public sealed class FakeMavLinkVehicle2 : IAsyncDisposable
             return;
         }
 
-        var ack = CreateCommandAckV2(command, 0);
+        var ack = CreateCommandAckV2(command, commandAckResult);
 
         await udpClient.SendAsync(ack, targetEndpoint, cancellationToken).ConfigureAwait(false);
     }

@@ -10,12 +10,12 @@ using Microsoft.Extensions.Options;
 namespace DroneGcs.Test.LibraryTests;
 
 /// <summary>
-/// 
+/// Test class for verifying the behavior of factory-created services.
 /// </summary>
 public class TestOfFactories
 {
     /// <summary>
-    /// 
+    /// Verify that ExtendedService can be created using default DI container with transient lifetime, and that each instance gets new dependencies
     /// </summary>
     [Fact]
     public void Verify_That_ExtendedService_Can_Be_Created_Using_Default_Using_Transient()
@@ -42,7 +42,7 @@ public class TestOfFactories
     }
 
     /// <summary>
-    /// 
+    /// Verify that ExtendedService can be created using default DI container with singleton lifetime, and that each instance gets the same dependencies 
     /// </summary>
     [Fact]
     public void Verify_That_ExtendedService_Can_Be_Created_Using_Default_Using_Singleton()
@@ -69,7 +69,7 @@ public class TestOfFactories
     }
 
     /// <summary>
-    /// 
+    /// Verify that ExtendedService can be created using default DI container with transient and singleton lifetimes, and that each instance gets the appropriate dependencies.
     /// </summary>
     [Fact]
     public void Verify_That_ExtendedService_Can_Be_Created_Using_Default_Using_Transient_And_Singleton()
@@ -96,7 +96,7 @@ public class TestOfFactories
     }
 
     /// <summary>
-    /// 
+    /// Verify that ExtendedService can be created using ServiceFactory with transient lifetime, and that each instance gets new dependencies.
     /// </summary>
     [Fact]
     public void Verify_That_ExtendedService_Can_Be_Created_Using_ServiceFactory_Using_Transient()
@@ -124,7 +124,7 @@ public class TestOfFactories
     }
 
     /// <summary>
-    /// 
+    /// Verify that ExtendedService can be created using ServiceFactory with singleton lifetime, and that each instance gets the same dependencies.
     /// </summary>
     [Fact]
     public void Verify_That_ExtendedService_Can_Be_Created_Using_ServiceFactory_Using_Singleton()
@@ -152,7 +152,7 @@ public class TestOfFactories
     }
 
     /// <summary>
-    /// 
+    /// Verify that ExtendedService can be created using ServiceFactory with transient and singleton lifetimes, and that each instance gets the appropriate dependencies.
     /// </summary>
     [Fact]
     public void Verify_That_ExtendedService_Can_Be_Created_Using_ServiceFactory_Using_Transient_And_Singleton()
@@ -180,7 +180,7 @@ public class TestOfFactories
     }
 
     /// <summary>
-    /// 
+    /// Verify that ExtendedService can be created using DomainFactory with transient lifetime, and that each instance gets new dependencies.
     /// </summary>
     [Fact]
     public void Verify_That_ExtendedService_Can_Be_Created_Using_DomainFactory_Using_Transient()
@@ -208,7 +208,7 @@ public class TestOfFactories
     }
 
     /// <summary>
-    /// 
+    /// Verify that ExtendedService can be created using DomainFactory with singleton lifetime, and that each instance gets the same dependencies.
     /// </summary>
     [Fact]
     public void Verify_That_ExtendedService_Can_Be_Created_Using_DomainFactory_Using_Singleton()
@@ -241,7 +241,7 @@ public class TestOfFactories
 
 
     /// <summary>
-    /// 
+    /// Verify that ExtendedService and its dependencies can be created using DomainFactory with singleton lifetime, and that each instance gets the same dependencies.
     /// </summary>
     [Fact]
     public void Verify_That_ExtendedService_And_Dependencies_Can_Be_Created_Using_DomainFactory_Using_Singleton()
@@ -299,7 +299,7 @@ public class TestOfFactories
     }
 
     /// <summary>
-    /// 
+    /// Verify that SuperExtendedService and its dependencies can be created using DomainFactory with singleton lifetime, and that each instance gets the same dependencies.
     /// </summary>
     [Fact]
     public void Verify_That_SuperExtendedService_And_Dependencies_Can_Be_Created_Using_DomainFactory_Using_Singleton()

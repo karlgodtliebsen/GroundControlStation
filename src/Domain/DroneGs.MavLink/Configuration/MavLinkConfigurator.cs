@@ -22,7 +22,7 @@ public static class MavLinkConfigurator
     /// <param name="services">The service collection to which MAVLink services will be added.</param>
     /// <param name="configuration"></param>
     /// <returns>The updated service collection.</returns>
-    public static IServiceCollection AddMavLinkConfiguration(this IServiceCollection services, IConfiguration configuration)
+    public static IServiceCollection AddMavLinkServices(this IServiceCollection services, IConfiguration configuration)
     {
         services.TryAddSingleton<IMavLinkCrcExtraProvider, CommonMavLinkCrcExtraProvider>();
         services.TryAddSingleton<IMavLinkFrameParser, MavLinkV2FrameParser>();
@@ -51,7 +51,7 @@ public static class MavLinkConfigurator
     /// </summary>
     /// <param name="services">The service provider to which MAVLink services will be added.</param>
     /// <returns>The updated service provider.</returns>
-    public static IServiceProvider UseMavLinkConfiguration(this IServiceProvider services)
+    public static IServiceProvider UseMavLinkServices(this IServiceProvider services)
     {
         var domainFactory = services.GetRequiredService<IDomainFactory>();
         //domainFactory.Add<IMavLinkMessageDecoder, MavLinkMessageDecoder>();

@@ -23,7 +23,7 @@ public static class DomainConfigurator
     /// <param name="services">The service collection to which domain services will be added.</param>
     /// <param name="configuration"></param>
     /// <returns>The updated service collection.</returns>
-    public static IServiceCollection AddDomainConfiguration(this IServiceCollection services, IConfiguration configuration)
+    public static IServiceCollection AddDomainServices(this IServiceCollection services, IConfiguration configuration)
     {
         services.TryAddSingleton<IVehicleRegistry, VehicleRegistry>();
         services.TryAddSingleton<IVehicleMessagePump, VehicleMessagePump>();
@@ -37,6 +37,7 @@ public static class DomainConfigurator
         services.TryAddSingleton<IDomainEventHub, DomainEventHub>();
         services.TryAddSingleton<ICommandAckTracker, CommandAckTracker>();
         services.AddDebugLogging();
+
         return services;
     }
 
@@ -45,7 +46,7 @@ public static class DomainConfigurator
     /// </summary>
     /// <param name="services">The service provider to which domain services will be added.</param>
     /// <returns>The updated service provider.</returns>
-    public static IServiceProvider UseDomainConfiguration(this IServiceProvider services)
+    public static IServiceProvider UseDomainServices(this IServiceProvider services)
     {
         var domainFactory = services.GetRequiredService<IDomainFactory>();
         domainFactory.Add<IHeartbeatVehicleHandler, HeartbeatVehicleHandler>();

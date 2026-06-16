@@ -43,20 +43,18 @@ public class DomainVehicleServiceTests
     [Fact]
     public async Task Should_Arm_Vehicle_Through_VehicleService_When_Command_Is_Acked()
     {
-        var services = TestConfigurator.AddTestConfiguration().BuildServiceProvider().UseTestConfiguration();
-
-        var endpoint = services.GetRequiredService<IOptions<TransportEndpoint>>().Value;
+        var endpoint = serviceProvider.GetRequiredService<IOptions<TransportEndpoint>>().Value;
 
         output.WriteLine($"UDP local:  {endpoint.LocalHost}:{endpoint.LocalPort}");
         output.WriteLine($"UDP remote: {endpoint.RemoteHost}:{endpoint.RemotePort}");
 
         var vehicleId = new VehicleId(1, 1);
 
-        await using var connection = services.GetRequiredService<IMavLinkConnection>();
+        await using var connection = serviceProvider.GetRequiredService<IMavLinkConnection>();
 
-        await using var vehicleService = services.GetRequiredService<IVehicleService>();
+        await using var vehicleService = serviceProvider.GetRequiredService<IVehicleService>();
 
-        var messagePump = services.GetRequiredService<IVehicleMessagePump>();
+        var messagePump = serviceProvider.GetRequiredService<IVehicleMessagePump>();
 
         await connection.StartAsync(TestContext.Current.CancellationToken);
 
@@ -66,8 +64,8 @@ public class DomainVehicleServiceTests
 
         await using var simulator =
             new FakeMavLinkVehicle2(
-                services.GetRequiredService<IMavLinkFrameParser>(),
-                services.GetRequiredService<IMavLinkCrcExtraProvider>(),
+                serviceProvider.GetRequiredService<IMavLinkFrameParser>(),
+                serviceProvider.GetRequiredService<IMavLinkCrcExtraProvider>(),
                 endpoint.LocalHost,
                 endpoint.LocalPort,
                 endpoint.RemotePort,
@@ -104,17 +102,15 @@ public class DomainVehicleServiceTests
     [Fact]
     public async Task Should_Disarm_Vehicle_Through_VehicleService_When_Command_Is_Acked()
     {
-        var services = TestConfigurator.AddTestConfiguration().BuildServiceProvider().UseTestConfiguration();
-
-        var endpoint = services.GetRequiredService<IOptions<TransportEndpoint>>().Value;
+        var endpoint = serviceProvider.GetRequiredService<IOptions<TransportEndpoint>>().Value;
 
         var vehicleId = new VehicleId(1, 1);
 
-        await using var connection = services.GetRequiredService<IMavLinkConnection>();
+        await using var connection = serviceProvider.GetRequiredService<IMavLinkConnection>();
 
-        var vehicleService = services.GetRequiredService<IVehicleService>();
+        var vehicleService = serviceProvider.GetRequiredService<IVehicleService>();
 
-        var messagePump = services.GetRequiredService<IVehicleMessagePump>();
+        var messagePump = serviceProvider.GetRequiredService<IVehicleMessagePump>();
 
         await connection.StartAsync(TestContext.Current.CancellationToken);
 
@@ -122,8 +118,8 @@ public class DomainVehicleServiceTests
 
         await using var simulator =
             new FakeMavLinkVehicle2(
-                services.GetRequiredService<IMavLinkFrameParser>(),
-                services.GetRequiredService<IMavLinkCrcExtraProvider>(),
+                serviceProvider.GetRequiredService<IMavLinkFrameParser>(),
+                serviceProvider.GetRequiredService<IMavLinkCrcExtraProvider>(),
                 endpoint.LocalHost,
                 endpoint.LocalPort,
                 endpoint.RemotePort,
@@ -175,19 +171,15 @@ public class DomainVehicleServiceTests
     [Fact]
     public async Task Should_Set_Guided_Mode_Through_VehicleService_When_Command_Is_Acked()
     {
-        // same setup as arm/disarm integration test
-
-        var services = TestConfigurator.AddTestConfiguration().BuildServiceProvider().UseTestConfiguration();
-
-        var endpoint = services.GetRequiredService<IOptions<TransportEndpoint>>().Value;
+        var endpoint = serviceProvider.GetRequiredService<IOptions<TransportEndpoint>>().Value;
 
         var vehicleId = new VehicleId(1, 1);
 
-        await using var connection = services.GetRequiredService<IMavLinkConnection>();
+        await using var connection = serviceProvider.GetRequiredService<IMavLinkConnection>();
 
-        await using var vehicleService = services.GetRequiredService<IVehicleService>();
+        await using var vehicleService = serviceProvider.GetRequiredService<IVehicleService>();
 
-        var messagePump = services.GetRequiredService<IVehicleMessagePump>();
+        var messagePump = serviceProvider.GetRequiredService<IVehicleMessagePump>();
 
         await connection.StartAsync(TestContext.Current.CancellationToken);
 
@@ -195,8 +187,8 @@ public class DomainVehicleServiceTests
 
         await using var simulator =
             new FakeMavLinkVehicle2(
-                services.GetRequiredService<IMavLinkFrameParser>(),
-                services.GetRequiredService<IMavLinkCrcExtraProvider>(),
+                serviceProvider.GetRequiredService<IMavLinkFrameParser>(),
+                serviceProvider.GetRequiredService<IMavLinkCrcExtraProvider>(),
                 endpoint.LocalHost,
                 endpoint.LocalPort,
                 endpoint.RemotePort,
@@ -234,17 +226,15 @@ public class DomainVehicleServiceTests
     [Fact]
     public async Task Should_Return_Timeout_When_Arm_Command_Is_Not_Acked()
     {
-        var services = TestConfigurator.AddTestConfiguration().BuildServiceProvider().UseTestConfiguration();
-
-        var endpoint = services.GetRequiredService<IOptions<TransportEndpoint>>().Value;
+        var endpoint = serviceProvider.GetRequiredService<IOptions<TransportEndpoint>>().Value;
 
         var vehicleId = new VehicleId(1, 1);
 
-        await using var connection = services.GetRequiredService<IMavLinkConnection>();
+        await using var connection = serviceProvider.GetRequiredService<IMavLinkConnection>();
 
-        await using var vehicleService = services.GetRequiredService<IVehicleService>();
+        await using var vehicleService = serviceProvider.GetRequiredService<IVehicleService>();
 
-        var messagePump = services.GetRequiredService<IVehicleMessagePump>();
+        var messagePump = serviceProvider.GetRequiredService<IVehicleMessagePump>();
 
         await connection.StartAsync(TestContext.Current.CancellationToken);
 
@@ -252,8 +242,8 @@ public class DomainVehicleServiceTests
 
         await using var simulator =
             new FakeMavLinkVehicle2(
-                services.GetRequiredService<IMavLinkFrameParser>(),
-                services.GetRequiredService<IMavLinkCrcExtraProvider>(),
+                serviceProvider.GetRequiredService<IMavLinkFrameParser>(),
+                serviceProvider.GetRequiredService<IMavLinkCrcExtraProvider>(),
                 endpoint.LocalHost,
                 endpoint.LocalPort,
                 endpoint.RemotePort,
@@ -274,6 +264,81 @@ public class DomainVehicleServiceTests
         var response = await vehicleService.ArmAsync(vehicleId, TestContext.Current.CancellationToken);
 
         Assert.Equal(VehicleCommandResult.Timeout, response.Result);
+    }
+
+    /// <summary>
+    /// Tests that the vehicle service correctly returns a denied result when the arm command is denied.
+    /// </summary>
+    [Fact]
+    public async Task Should_Return_Denied_When_Arm_Command_Is_Denied()
+    {
+        var endpoint = serviceProvider.GetRequiredService<IOptions<TransportEndpoint>>().Value;
+
+        var vehicleId = new VehicleId(1, 1);
+
+        await using var connection = serviceProvider.GetRequiredService<IMavLinkConnection>();
+
+        await using var vehicleService = serviceProvider.GetRequiredService<IVehicleService>();
+
+        var messagePump = serviceProvider.GetRequiredService<IVehicleMessagePump>();
+
+        await connection.StartAsync(TestContext.Current.CancellationToken);
+
+        _ = Task.Run(() => messagePump.StartAsync(TestContext.Current.CancellationToken), TestContext.Current.CancellationToken);
+
+        await using var simulator =
+            new FakeMavLinkVehicle2(
+                serviceProvider.GetRequiredService<IMavLinkFrameParser>(),
+                serviceProvider.GetRequiredService<IMavLinkCrcExtraProvider>(),
+                endpoint.LocalHost,
+                endpoint.LocalPort,
+                endpoint.RemotePort,
+                TimeSpan.FromMilliseconds(100),
+                true,
+                2); // MAV_RESULT_DENIED
+
+        await simulator.StartAsync(TestContext.Current.CancellationToken);
+
+        await EventuallyAsync(
+            () => vehicleService.GetVehicle(vehicleId),
+            TimeSpan.FromSeconds(5),
+            TestContext.Current.CancellationToken);
+
+        var response = await vehicleService.ArmAsync(vehicleId, TestContext.Current.CancellationToken);
+
+        Assert.Equal(VehicleCommandResult.Denied, response.Result);
+
+        var state = vehicleService.GetVehicle(vehicleId);
+        Assert.False(state.IsArmed);
+    }
+
+    /// <summary>
+    /// Tests that the vehicle service correctly returns a denied result when the vehicle is offline.
+    /// </summary>
+    [Fact]
+    public async Task Should_Deny_Arm_When_Vehicle_Is_Offline()
+    {
+        var registry = serviceProvider.GetRequiredService<IVehicleRegistry>();
+        var vehicleService = serviceProvider.GetRequiredService<IVehicleService>();
+
+        var vehicleId = new VehicleId(1, 1);
+        var receivedAt = DateTimeOffset.UtcNow.AddSeconds(-10);
+
+        var vehicle = registry.RegisterOrUpdateHeartbeat(
+            vehicleId,
+            0,
+            2,
+            3,
+            0,
+            4,
+            3,
+            receivedAt);
+
+        registry.UpdateConnectionStates(DateTimeOffset.UtcNow, TimeSpan.FromSeconds(2), TimeSpan.FromSeconds(5));
+
+        Assert.Equal(VehicleConnectionState.Offline, vehicle.Vehicle.State.ConnectionState);
+        var response = await vehicleService.ArmAsync(vehicleId, TestContext.Current.CancellationToken);
+        Assert.Equal(VehicleCommandResult.Denied, response.Result);
     }
 
     private static async Task EventuallyAsync(Action assertion, TimeSpan timeout, CancellationToken cancellationToken)

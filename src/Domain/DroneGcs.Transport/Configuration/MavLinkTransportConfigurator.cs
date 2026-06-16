@@ -16,7 +16,7 @@ public static class MavLinkTransportConfigurator
     /// <param name="services">The service collection to which MAVLink Transport services will be added.</param>
     /// <param name="configuration"></param>
     /// <returns>The updated service collection.</returns>
-    public static IServiceCollection AddMavLinkTransportConfiguration(this IServiceCollection services, IConfiguration configuration)
+    public static IServiceCollection AddMavLinkTransportServices(this IServiceCollection services, IConfiguration configuration)
     {
         services.TryAddSingleton<IMavLinkTransport, UdpMavLinkTransport>();
 
@@ -31,7 +31,7 @@ public static class MavLinkTransportConfigurator
     /// </summary>
     /// <param name="services">The service provider used to resolve dependencies.</param>
     /// <returns>The updated service provider.</returns>
-    public static IServiceProvider UseMavLinkTransportConfiguration(this IServiceProvider services)
+    public static IServiceProvider UseMavLinkTransportServices(this IServiceProvider services)
     {
         return services;
     }

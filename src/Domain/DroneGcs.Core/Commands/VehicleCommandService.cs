@@ -1,4 +1,7 @@
-﻿using DroneGcs.Core.Models;
+﻿using Domain.Library.DateTime.Domain;
+
+using DroneGcs.Core.Models;
+using DroneGcs.Core.Services;
 
 using DroneGs.MavLink.Commands;
 using DroneGs.MavLink.Encoding;
@@ -9,26 +12,52 @@ namespace DroneGcs.Core.Commands;
 /// <summary>
 /// Service for sending commands to vehicles.
 /// </summary>
-public sealed class VehicleCommandService(IMavLinkConnection connection, IMavLinkCommandEncoder encoder, ICommandAckTracker commandAckTracker)
+public sealed class VehicleCommandService(
+    IVehicleRegistry registry,
+    IMavLinkConnection connection,
+    IMavLinkCommandEncoder encoder,
+    ICommandAckTracker commandAckTracker,
+    IDateTimeProvider dateTimeProvider)
     : IVehicleCommandService
 {
     private static readonly TimeSpan CommandAckTimeout = TimeSpan.FromSeconds(5);
 
+
+    private VehicleCommandResponse? ValidateCanCommand(VehicleId vehicleId)
+    {
+        var vehicle = registry.GetRequired(vehicleId);
+
+        return vehicle.State.ConnectionState != VehicleConnectionState.Online
+            ? new VehicleCommandResponse(vehicleId, VehicleCommandResult.Denied, dateTimeProvider.UtcNow)
+            : null;
+    }
+
     /// <inheritdoc />
     public async Task<VehicleCommandResponse> ArmAsync(VehicleId vehicleId, CancellationToken cancellationToken)
     {
-        return await SendArmDisarmAsync(vehicleId, true, cancellationToken);
+        var validation = ValidateCanCommand(vehicleId);
+
+        return validation is not null ? validation : await SendArmDisarmAsync(vehicleId, true, cancellationToken);
     }
 
     /// <inheritdoc />
     public async Task<VehicleCommandResponse> DisarmAsync(VehicleId vehicleId, CancellationToken cancellationToken)
     {
-        return await SendArmDisarmAsync(vehicleId, false, cancellationToken);
+        var validation = ValidateCanCommand(vehicleId);
+
+        return validation is not null ? validation : await SendArmDisarmAsync(vehicleId, false, cancellationToken);
     }
 
     /// <inheritdoc />
     public async Task<VehicleCommandResponse> SetModeAsync(VehicleId vehicleId, VehicleMode mode, CancellationToken cancellationToken)
     {
+        var validation = ValidateCanCommand(vehicleId);
+
+        if (validation is not null)
+        {
+            return validation;
+        }
+
         var customMode = ArduCopterModeMapper.ToCustomMode(mode);
 
         var waitForAckTask = commandAckTracker.WaitForAckAsync(vehicleId, MavLinkCommandIds.DoSetMode, CommandAckTimeout, cancellationToken);
@@ -52,6 +81,13 @@ public sealed class VehicleCommandService(IMavLinkConnection connection, IMavLin
 
     private async Task<VehicleCommandResponse> SendArmDisarmAsync(VehicleId vehicleId, bool arm, CancellationToken cancellationToken)
     {
+        var validation = ValidateCanCommand(vehicleId);
+
+        if (validation is not null)
+        {
+            return validation;
+        }
+
         var waitForAckTask = commandAckTracker.WaitForAckAsync(vehicleId, MavLinkCommandIds.ComponentArmDisarm, CommandAckTimeout, cancellationToken);
 
         var packet = encoder.EncodeArmDisarm(vehicleId.SystemId, vehicleId.ComponentId, arm);
@@ -66,10 +102,7 @@ public sealed class VehicleCommandService(IMavLinkConnection connection, IMavLin
         }
         catch (TimeoutException)
         {
-            return new VehicleCommandResponse(
-                vehicleId,
-                VehicleCommandResult.Timeout,
-                DateTimeOffset.UtcNow);
+            return new VehicleCommandResponse(vehicleId, VehicleCommandResult.Timeout, dateTimeProvider.UtcNow);
         }
     }
 

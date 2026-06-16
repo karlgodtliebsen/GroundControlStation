@@ -38,10 +38,10 @@ public static class TestConfigurator
     public static IServiceCollection AddTestConfiguration(this IServiceCollection services, IConfiguration configuration)
     {
         services
-            .AddFactories()
-            .AddDomainConfiguration(configuration)
-            .AddMavLinkTransportConfiguration(configuration)
-            .AddMavLinkConfiguration(configuration);
+            .AddLibraryServices()
+            .AddDomainServices(configuration)
+            .AddMavLinkTransportServices(configuration)
+            .AddMavLinkServices(configuration);
 
         return services;
     }
@@ -55,8 +55,8 @@ public static class TestConfigurator
     public static IServiceProvider UseTestConfiguration(this IServiceProvider services)
     {
         services
-            .UseMavLinkConfiguration()
-            .UseDomainConfiguration()
+            .UseMavLinkServices()
+            .UseDomainServices()
             ;
         return services;
     }
