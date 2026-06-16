@@ -90,7 +90,7 @@ public class VehicleTests
         output.WriteLine($"Transport IsConnected: {client.IsConnected}");
         await using var simulator = new FakeMavLinkVehicle2(
             services.GetRequiredService<IMavLinkFrameParser>(),
-            services.GetRequiredService<IMavLinkCrcExtraProvider>(), "127.0.0.1", 14550, TimeSpan.FromMilliseconds(100));
+            services.GetRequiredService<IMavLinkCrcExtraProvider>(), "127.0.0.1", 14550, 14551, TimeSpan.FromMilliseconds(100));
 
         await simulator.StartAsync(TestContext.Current.CancellationToken);
 
@@ -168,7 +168,7 @@ public class VehicleTests
         var pumpTask = pump.StartAsync(TestContext.Current.CancellationToken);
         await using var simulator = new FakeMavLinkVehicle2(
             services.GetRequiredService<IMavLinkFrameParser>(),
-            services.GetRequiredService<IMavLinkCrcExtraProvider>(), "127.0.0.1", 14550, TimeSpan.FromMilliseconds(100));
+            services.GetRequiredService<IMavLinkCrcExtraProvider>(), "127.0.0.1", 14550, 14551, TimeSpan.FromMilliseconds(100));
 
 
         await simulator.StartAsync(TestContext.Current.CancellationToken);
@@ -512,8 +512,7 @@ public class VehicleTests
                 services.GetRequiredService<IMavLinkCrcExtraProvider>(),
                 endpoint.LocalHost,
                 endpoint.LocalPort,
-                TimeSpan.FromMilliseconds(100),
-                endpoint.RemotePort);
+                endpoint.RemotePort, TimeSpan.FromMilliseconds(100));
 
         await simulator.StartAsync(TestContext.Current.CancellationToken);
 

@@ -32,17 +32,19 @@ public sealed class FakeMavLinkVehicle2 : IAsyncDisposable
     /// <param name="crcExtraProvider"></param>
     /// <param name="targetIp">The IP address of the target endpoint.</param>
     /// <param name="targetPort">The port of the target endpoint.</param>
-    /// <param name="heartbeatInterval">The interval at which heartbeat messages are sent.</param>
     /// <param name="localPort">The local port to bind the UDP client to.</param>
+    /// <param name="heartbeatInterval">The interval at which heartbeat messages are sent.</param>
     public FakeMavLinkVehicle2(
         IMavLinkFrameParser frameParser,
-        IMavLinkCrcExtraProvider crcExtraProvider,
-        string targetIp, int targetPort, TimeSpan? heartbeatInterval = null, int? localPort = null)
+        IMavLinkCrcExtraProvider crcExtraProvider, string targetIp, int targetPort, int localPort, TimeSpan? heartbeatInterval = null)
     {
         this.frameParser = frameParser;
         this.crcExtraProvider = crcExtraProvider;
-        udpClient = localPort.HasValue ? new UdpClient(localPort.Value) : new UdpClient();
+
         targetEndpoint = new IPEndPoint(IPAddress.Parse(targetIp), targetPort);
+
+        udpClient = new UdpClient(new IPEndPoint(IPAddress.Any, localPort));
+
         this.heartbeatInterval = heartbeatInterval ?? TimeSpan.FromSeconds(1);
     }
 

@@ -7,13 +7,11 @@ using DroneGcs.Test.Configuration;
 using DroneGcs.Transport;
 
 using DroneGs.MavLink.Client;
-using DroneGs.MavLink.Decoding;
 using DroneGs.MavLink.Encoding;
 using DroneGs.MavLink.Services;
 
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
-using Microsoft.Extensions.Options;
 
 namespace DroneGcs.Test;
 
@@ -48,8 +46,6 @@ public class ConfigurationTests
         var parser = serviceProvider.GetRequiredService<IMavLinkFrameParser>();
         var transport = serviceProvider.GetRequiredService<IMavLinkTransport>();
         var mavLinkClient = serviceProvider.GetRequiredService<IMavLinkClient>();
-        var decoderOptions = serviceProvider.GetRequiredService<IOptions<IList<IMavLinkMessageDecoder>>>();
-        decoderOptions.Value.Add(new HeartbeatMessageDecoder());
 
         var frameParser = serviceProvider.GetRequiredService<IMavLinkFrameParser>();
         var commandEncoder = serviceProvider.GetRequiredService<IMavLinkCommandEncoder>();
@@ -65,6 +61,6 @@ public class ConfigurationTests
 
         var domainFactory = serviceProvider.GetRequiredService<IDomainFactory>();
 
-        await using var simulator = new FakeMavLinkVehicle2(frameParser, crcExtraProvider, "127.0.0.1", 14550, TimeSpan.FromMilliseconds(100));
+        await using var simulator = new FakeMavLinkVehicle2(frameParser, crcExtraProvider, "127.0.0.1", 14550, 14551, TimeSpan.FromMilliseconds(100));
     }
 }

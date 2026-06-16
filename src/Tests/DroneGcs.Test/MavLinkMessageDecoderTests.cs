@@ -31,7 +31,7 @@ public sealed class MavLinkMessageDecoderTests
 
         await using var simulator = new FakeMavLinkVehicle2(
             services.GetRequiredService<IMavLinkFrameParser>(),
-            services.GetRequiredService<IMavLinkCrcExtraProvider>(), "127.0.0.1", 14550, TimeSpan.FromMilliseconds(100));
+            services.GetRequiredService<IMavLinkCrcExtraProvider>(), "127.0.0.1", 14550, 14551, TimeSpan.FromMilliseconds(100));
 
         await simulator.StartAsync(TestContext.Current.CancellationToken);
 
