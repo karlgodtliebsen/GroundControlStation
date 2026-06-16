@@ -8,9 +8,8 @@ namespace DroneGcs.Transport;
 /// <inheritdoc />
 public sealed class UdpMavLinkTransport : IMavLinkTransport
 {
-    private readonly UdpClient udpClient;
+    private UdpClient? udpClient;
     private readonly IPEndPoint remoteEndPoint;
-    private readonly MavLinkEndpoint localEndpoint;
     private readonly TransportEndpoint endpoint;
     private volatile bool isConnected;
 
@@ -23,10 +22,9 @@ public sealed class UdpMavLinkTransport : IMavLinkTransport
     {
         endpoint = options.Value;
 
-        var localPort = endpoint.LocalPort;
         var remoteHost = endpoint.RemoteHost;
         var remotePort = endpoint.RemotePort;
-        var localHost = endpoint.LocalHost;
+        var localPort = endpoint.LocalPort;
 
         if (localPort is <= 0 or > 65535)
         {
@@ -43,16 +41,8 @@ public sealed class UdpMavLinkTransport : IMavLinkTransport
             throw new ArgumentException("Remote host must be specified.", nameof(remoteHost));
         }
 
-        var localAddress = string.IsNullOrWhiteSpace(localHost)
-            ? IPAddress.Any
-            : IPAddress.Parse(localHost);
-
-        udpClient = new UdpClient(
-            new IPEndPoint(localAddress, localPort));
-
         var remoteAddress = IPAddress.Parse(remoteHost);
         remoteEndPoint = new IPEndPoint(remoteAddress, remotePort);
-        localEndpoint = new MavLinkEndpoint(endpoint.Protocol, localHost, localPort);
     }
 
     /// <inheritdoc />
@@ -62,6 +52,16 @@ public sealed class UdpMavLinkTransport : IMavLinkTransport
     public Task ConnectAsync(CancellationToken cancellationToken)
     {
         cancellationToken.ThrowIfCancellationRequested();
+
+        var localPort = endpoint.LocalPort;
+        var localHost = endpoint.LocalHost;
+
+        var localAddress = string.IsNullOrWhiteSpace(localHost)
+            ? IPAddress.Any
+            : IPAddress.Parse(localHost);
+
+        udpClient = new UdpClient(
+            new IPEndPoint(localAddress, localPort));
 
         isConnected = true;
         return Task.CompletedTask;
@@ -73,6 +73,11 @@ public sealed class UdpMavLinkTransport : IMavLinkTransport
         if (!isConnected)
         {
             throw new InvalidOperationException("UDP transport is not connected.");
+        }
+
+        if (udpClient is null)
+        {
+            throw new InvalidOperationException("UDP Client is not initialized.");
         }
 
         var result = await udpClient.ReceiveAsync(cancellationToken).ConfigureAwait(false);
@@ -94,6 +99,11 @@ public sealed class UdpMavLinkTransport : IMavLinkTransport
             throw new InvalidOperationException("UDP transport is not connected.");
         }
 
+        if (udpClient is null)
+        {
+            throw new InvalidOperationException("UDP Client is not initialized.");
+        }
+
         await udpClient.SendAsync(data, remoteEndPoint, cancellationToken).ConfigureAwait(false);
     }
 
@@ -103,7 +113,12 @@ public sealed class UdpMavLinkTransport : IMavLinkTransport
         cancellationToken.ThrowIfCancellationRequested();
 
         isConnected = false;
-        udpClient.Close();
+        if (udpClient is not null)
+        {
+            udpClient.Close();
+            udpClient.Dispose();
+            udpClient = null!;
+        }
 
         return Task.CompletedTask;
     }
@@ -112,7 +127,12 @@ public sealed class UdpMavLinkTransport : IMavLinkTransport
     public ValueTask DisposeAsync()
     {
         isConnected = false;
-        udpClient.Dispose();
+        if (udpClient is not null)
+        {
+            udpClient.Close();
+            udpClient.Dispose();
+            udpClient = null!;
+        }
 
         GC.SuppressFinalize(this);
         return ValueTask.CompletedTask;

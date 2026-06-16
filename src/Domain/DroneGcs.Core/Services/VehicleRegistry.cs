@@ -31,6 +31,7 @@ public sealed class VehicleRegistry(IDomainEventHub eventHub) : IVehicleRegistry
         var result = new List<VehicleSession>();
         foreach (var vehicle in vehicles.Values)
         {
+            result.Add(vehicle);
             var stateChanged = vehicle.UpdateConnectionState(now, staleAfter, offlineAfter);
             eventHub.PublishDomainEvent(new VehicleStateUpdated(vehicle.State));
             if (stateChanged != null)

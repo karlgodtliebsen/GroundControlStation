@@ -5,7 +5,7 @@ namespace DroneGcs.Core.Commands;
 /// <summary>
 /// Defines the contract for a service that can send commands to a vehicle.
 /// </summary>
-public interface IVehicleCommandService
+public interface IVehicleCommandService : IAsyncDisposable
 {
     /// <summary>
     /// Arms the specified vehicle.

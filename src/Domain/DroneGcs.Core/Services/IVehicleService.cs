@@ -6,7 +6,7 @@ namespace DroneGcs.Core.Services;
 /// <summary>
 /// 
 /// </summary>
-public interface IVehicleService
+public interface IVehicleService : IAsyncDisposable
 {
     /// <summary>
     /// 

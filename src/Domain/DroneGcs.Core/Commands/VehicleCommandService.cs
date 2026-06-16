@@ -32,35 +32,19 @@ public sealed class VehicleCommandService(IMavLinkConnection connection, IMavLin
         throw new NotImplementedException();
     }
 
-    private async Task<VehicleCommandResponse> SendArmDisarmAsync(
-        VehicleId vehicleId,
-        bool arm,
-        CancellationToken cancellationToken)
+    private async Task<VehicleCommandResponse> SendArmDisarmAsync(VehicleId vehicleId, bool arm, CancellationToken cancellationToken)
     {
-        var waitForAckTask = commandAckTracker.WaitForAckAsync(
-            vehicleId,
-            MavLinkCommandIds.ComponentArmDisarm,
-            CommandAckTimeout,
-            cancellationToken);
+        var waitForAckTask = commandAckTracker.WaitForAckAsync(vehicleId, MavLinkCommandIds.ComponentArmDisarm, CommandAckTimeout, cancellationToken);
 
-        var packet = encoder.EncodeArmDisarm(
-            vehicleId.SystemId,
-            vehicleId.ComponentId,
-            arm);
+        var packet = encoder.EncodeArmDisarm(vehicleId.SystemId, vehicleId.ComponentId, arm);
 
-        await connection.SendRawAsync(
-                packet,
-                cancellationToken)
-            .ConfigureAwait(false);
+        await connection.SendRawAsync(packet, cancellationToken).ConfigureAwait(false);
 
         try
         {
             var ack = await waitForAckTask.ConfigureAwait(false);
 
-            return new VehicleCommandResponse(
-                vehicleId,
-                MapResult(ack.Result),
-                ack.ReceivedAt);
+            return new VehicleCommandResponse(vehicleId, MapResult(ack.Result), ack.ReceivedAt);
         }
         catch (TimeoutException)
         {
@@ -82,5 +66,11 @@ public sealed class VehicleCommandService(IMavLinkConnection connection, IMavLin
             4 => VehicleCommandResult.Failed,
             var _ => VehicleCommandResult.Failed
         };
+    }
+
+    /// <inheritdoc />
+    public async ValueTask DisposeAsync()
+    {
+        await connection.DisposeAsync().ConfigureAwait(false);
     }
 }

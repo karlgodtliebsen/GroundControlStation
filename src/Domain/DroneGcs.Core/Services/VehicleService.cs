@@ -52,4 +52,10 @@ public sealed class VehicleService(IVehicleRegistry registry, IVehicleCommandSer
     {
         registry.GetRequired(vehicleId);
     }
+
+    /// <inheritdoc />
+    public async ValueTask DisposeAsync()
+    {
+        await commandService.DisposeAsync().ConfigureAwait(false);
+    }
 }

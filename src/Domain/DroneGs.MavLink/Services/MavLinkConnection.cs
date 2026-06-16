@@ -118,5 +118,6 @@ public sealed class MavLinkConnection : IMavLinkConnection
 
         await client.DisposeAsync()
             .ConfigureAwait(false);
+        GC.SuppressFinalize(this);
     }
 }

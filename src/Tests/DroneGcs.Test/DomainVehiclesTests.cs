@@ -26,7 +26,7 @@ public class DomainVehiclesTests
     /// 
     /// </summary>
     [Fact]
-    public void Should_Return_All_Simulated_Vehicles()
+    public async Task Should_Return_All_Simulated_VehiclesAsync()
     {
         var services = TestConfigurator
             .AddTestConfiguration()
@@ -35,7 +35,8 @@ public class DomainVehiclesTests
         services.UseTestConfiguration();
 
         var registry = services.GetRequiredService<IVehicleRegistry>();
-        var vehicleService = services.GetRequiredService<IVehicleService>();
+        // var vehicleService = services.GetRequiredService<IVehicleService>();
+        await using var vehicleService = services.GetRequiredService<IVehicleService>();
 
         new SimulatedVehicleState
         {
@@ -63,7 +64,7 @@ public class DomainVehiclesTests
     /// 
     /// </summary>
     [Fact]
-    public void Should_Return_Specific_Simulated_Vehicle()
+    public async Task Should_Return_Specific_Simulated_VehicleAsync()
     {
         var services = TestConfigurator
             .AddTestConfiguration()
@@ -72,7 +73,7 @@ public class DomainVehiclesTests
         services.UseTestConfiguration();
 
         var registry = services.GetRequiredService<IVehicleRegistry>();
-        var vehicleService = services.GetRequiredService<IVehicleService>();
+        await using var vehicleService = services.GetRequiredService<IVehicleService>();
 
         new SimulatedVehicleState
         {

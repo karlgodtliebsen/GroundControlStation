@@ -116,7 +116,8 @@ public class MavLinkTests
     [Fact]
     public void Should_Have_Valid_Crc_For_Known_Heartbeat()
     {
-        var frame = MavLinkKnownFrames.CreateHeartbeatV2();
+        var provider = new CommonMavLinkCrcExtraProvider();
+        var frame = MavLinkKnownFrames.CreateHeartbeatV2(provider);
 
         var payloadLength = frame[1];
         var messageId =
@@ -124,7 +125,6 @@ public class MavLinkTests
             | ((uint)frame[8] << 8)
             | ((uint)frame[9] << 16);
 
-        var provider = new CommonMavLinkCrcExtraProvider();
 
         Assert.True(provider.TryGetCrcExtra(messageId, out var crcExtra));
 
@@ -187,7 +187,8 @@ public class MavLinkTests
     {
         var parser = new MavLinkV2FrameParser(new CommonMavLinkCrcExtraProvider());
 
-        var frame = MavLinkKnownFrames.CreateHeartbeatV2();
+        var provider = new CommonMavLinkCrcExtraProvider();
+        var frame = MavLinkKnownFrames.CreateHeartbeatV2(provider);
         frame[^1] ^= 0xFF;
 
         var frames = parser.Parse(frame, DateTimeOffset.UtcNow);

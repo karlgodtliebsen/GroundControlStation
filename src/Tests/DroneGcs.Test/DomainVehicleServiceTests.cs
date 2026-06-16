@@ -4,12 +4,13 @@ using DroneGcs.Core.Commands;
 using DroneGcs.Core.Models;
 using DroneGcs.Core.Services;
 using DroneGcs.Test.Configuration;
+using DroneGcs.Transport;
 
-using DroneGs.MavLink.Client;
 using DroneGs.MavLink.Services;
 
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Options;
 
 namespace DroneGcs.Test;
 
@@ -30,60 +31,78 @@ public class DomainVehicleServiceTests
         this.output = output;
         var logger = NSubstitute.Substitute.For<ILogger<EventHub>>();
 
-        var services = TestConfigurator
-            .AddTestConfiguration();
+        var services = TestConfigurator.AddTestConfiguration();
         services.AddSingleton<ILogger<EventHub>>(logger);
         serviceProvider = services.BuildServiceProvider();
         serviceProvider.UseTestConfiguration();
     }
 
     /// <summary>
-    /// 
+    /// Tests that a vehicle can be armed through IVehicleService using the full MAVLink simulator pipeline.
     /// </summary>
     [Fact]
-    public async Task Should_Return_All_Simulated_VehiclesAsync()
+    public async Task Should_Arm_Vehicle_Through_VehicleService_When_Command_Is_Acked()
     {
-        var registry = serviceProvider.GetRequiredService<IVehicleRegistry>();
-        var vehicleService = serviceProvider.GetRequiredService<IVehicleService>();
+        var services = TestConfigurator
+            .AddTestConfiguration()
+            .BuildServiceProvider();
 
-        var simulation = new SimulatedVehicleState
-        {
-            VehicleId = new VehicleId(1, 1),
-            Latitude = 56.1629,
-            Longitude = 10.2039,
-            Altitude = 12.5,
-            BatteryRemaining = 87,
-            BatteryVoltage = 11.4f
-        }.ApplyTo(registry);
+        services.UseTestConfiguration();
 
-        await using var client = serviceProvider.GetRequiredService<IMavLinkClient>();
-        await using var connection = serviceProvider.GetRequiredService<IMavLinkConnection>();
+        var endpoint = services.GetRequiredService<IOptions<TransportEndpoint>>().Value;
+
+        output.WriteLine($"UDP local:  {endpoint.LocalHost}:{endpoint.LocalPort}");
+        output.WriteLine($"UDP remote: {endpoint.RemoteHost}:{endpoint.RemotePort}");
+
+        var vehicleId = new VehicleId(1, 1);
+
+        await using var connection = services.GetRequiredService<IMavLinkConnection>();
+
+        await using var vehicleService = services.GetRequiredService<IVehicleService>();
+
+        var messagePump = services.GetRequiredService<IVehicleMessagePump>();
+
         await connection.StartAsync(TestContext.Current.CancellationToken);
 
-        var vehicles = vehicleService.GetVehicles();
+        var pumpTask = Task.Run(
+            () => messagePump.StartAsync(TestContext.Current.CancellationToken),
+            TestContext.Current.CancellationToken);
 
-        var vehicle = Assert.Single(vehicles);
+        await using var simulator =
+            new FakeMavLinkVehicle2(
+                services.GetRequiredService<IMavLinkFrameParser>(),
+                services.GetRequiredService<IMavLinkCrcExtraProvider>(),
+                endpoint.LocalHost,
+                endpoint.LocalPort,
+                endpoint.RemotePort,
+                TimeSpan.FromMilliseconds(100)
+            );
 
-        var response = await vehicleService.ArmAsync(vehicle.VehicleId, TestContext.Current.CancellationToken);
+        await simulator.StartAsync(TestContext.Current.CancellationToken);
+
+        await EventuallyAsync(
+            () =>
+            {
+                var state = vehicleService.GetVehicle(vehicleId);
+
+                Assert.Equal(vehicleId, state.VehicleId);
+                Assert.False(state.IsArmed);
+            },
+            TimeSpan.FromSeconds(5),
+            TestContext.Current.CancellationToken);
+
+        var response = await vehicleService.ArmAsync(vehicleId, TestContext.Current.CancellationToken);
 
         Assert.Equal(VehicleCommandResult.Accepted, response.Result);
 
         await EventuallyAsync(
             () =>
             {
-                var state = vehicleService.GetVehicle(vehicle.VehicleId);
+                var state = vehicleService.GetVehicle(vehicleId);
                 Assert.True(state.IsArmed);
             },
             TimeSpan.FromSeconds(5),
             TestContext.Current.CancellationToken);
-
-
-        Assert.Equal(new VehicleId(1, 1), vehicle.VehicleId);
-        Assert.Equal(56.1629, vehicle.Latitude);
-        Assert.Equal(10.2039, vehicle.Longitude);
-        Assert.Equal(12.5, vehicle.Altitude);
-        Assert.Equal(87, vehicle.BatteryRemaining);
-        Assert.Equal(11.4f, vehicle.BatteryVoltage);
     }
 
     private static async Task EventuallyAsync(Action assertion, TimeSpan timeout, CancellationToken cancellationToken)

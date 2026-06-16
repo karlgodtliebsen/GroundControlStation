@@ -2,6 +2,8 @@
 using System.Net;
 using System.Net.Sockets;
 
+using DroneGcs.Core.Models;
+
 using DroneGs.MavLink;
 using DroneGs.MavLink.Commands;
 using DroneGs.MavLink.Messages;
@@ -24,6 +26,7 @@ public sealed class FakeMavLinkVehicle2 : IAsyncDisposable
     private Task? workerTask = null;
     private Task? receiveTask = null;
     private byte sequence;
+    private VehicleState state;
 
     /// <summary>
     /// Initializes a new instance of the <see cref="FakeMavLinkVehicle2"/> class.
@@ -34,9 +37,7 @@ public sealed class FakeMavLinkVehicle2 : IAsyncDisposable
     /// <param name="targetPort">The port of the target endpoint.</param>
     /// <param name="localPort">The local port to bind the UDP client to.</param>
     /// <param name="heartbeatInterval">The interval at which heartbeat messages are sent.</param>
-    public FakeMavLinkVehicle2(
-        IMavLinkFrameParser frameParser,
-        IMavLinkCrcExtraProvider crcExtraProvider, string targetIp, int targetPort, int localPort, TimeSpan? heartbeatInterval = null)
+    public FakeMavLinkVehicle2(IMavLinkFrameParser frameParser, IMavLinkCrcExtraProvider crcExtraProvider, string targetIp, int targetPort, int localPort, TimeSpan? heartbeatInterval = null)
     {
         this.frameParser = frameParser;
         this.crcExtraProvider = crcExtraProvider;
@@ -46,6 +47,27 @@ public sealed class FakeMavLinkVehicle2 : IAsyncDisposable
         udpClient = new UdpClient(new IPEndPoint(IPAddress.Any, localPort));
 
         this.heartbeatInterval = heartbeatInterval ?? TimeSpan.FromSeconds(1);
+
+        state = new VehicleState(
+            new VehicleId(1, 1),
+            0,
+            2,
+            3,
+            0,
+            4,
+            3,
+            VehicleConnectionState.Online,
+            DateTimeOffset.UtcNow,
+            VehicleMode.Stabilize,
+            false,
+            null,
+            null,
+            null,
+            null,
+            null,
+            null,
+            null,
+            null);
     }
 
     /// <summary>
@@ -59,12 +81,8 @@ public sealed class FakeMavLinkVehicle2 : IAsyncDisposable
 
         cancellationTokenSource = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
 
-        workerTask = Task.Run(
-            () => SendLoopAsync(cancellationTokenSource.Token),
-            CancellationToken.None);
-        receiveTask = Task.Run(
-            () => ReceiveCommandLoopAsync(cancellationTokenSource.Token),
-            CancellationToken.None);
+        workerTask = Task.Run(() => SendLoopAsync(cancellationTokenSource.Token), CancellationToken.None);
+        receiveTask = Task.Run(() => ReceiveCommandLoopAsync(cancellationTokenSource.Token), CancellationToken.None);
 
         return Task.CompletedTask;
     }
@@ -95,18 +113,33 @@ public sealed class FakeMavLinkVehicle2 : IAsyncDisposable
 
         if (command == MavLinkCommandIds.ComponentArmDisarm)
         {
+            var arm = ReadFloat(frame.Payload.Span[0..4]) == 1.0f;
+
+            const byte mavModeFlagSafetyArmed = 0b1000_0000;
+
+            var newBaseMode = arm
+                ? (byte)(state.BaseMode | mavModeFlagSafetyArmed)
+                : (byte)(state.BaseMode & ~mavModeFlagSafetyArmed);
+
+            state = state with
+            {
+                BaseMode = newBaseMode,
+                IsArmed = arm
+            };
+
             var ack = CreateCommandAckV2(command, 0);
 
-            await udpClient.SendAsync(ack, targetEndpoint, cancellationToken)
-                .ConfigureAwait(false);
+            await udpClient.SendAsync(ack, targetEndpoint, cancellationToken).ConfigureAwait(false);
         }
     }
 
-    private byte[] CreateCommandAckV2(
-        ushort command,
-        byte result,
-        byte systemId = 1,
-        byte componentId = 1)
+    private static float ReadFloat(ReadOnlySpan<byte> value)
+    {
+        var raw = BinaryPrimitives.ReadInt32LittleEndian(value);
+        return BitConverter.Int32BitsToSingle(raw);
+    }
+
+    private byte[] CreateCommandAckV2(ushort command, byte result, byte systemId = 1, byte componentId = 1)
     {
         Span<byte> payload = stackalloc byte[10];
 
@@ -144,19 +177,25 @@ public sealed class FakeMavLinkVehicle2 : IAsyncDisposable
     {
         while (!cancellationToken.IsCancellationRequested)
         {
-            var payload = MavLinkKnownFrames.CreateHeartbeatV2();
+            var heartbeat = MavLinkKnownFrames.CreateHeartbeatV2(
+                crcExtraProvider,
+                sequence++,
+                state.VehicleId.SystemId,
+                state.VehicleId.ComponentId,
+                state.CustomMode,
+                state.VehicleType,
+                state.Autopilot,
+                state.BaseMode,
+                state.SystemStatus,
+                state.MavLinkVersion);
 
-            await udpClient.SendAsync(payload, targetEndpoint, cancellationToken).ConfigureAwait(false);
+            await udpClient.SendAsync(heartbeat, targetEndpoint, cancellationToken).ConfigureAwait(false);
 
             await Task.Delay(heartbeatInterval, cancellationToken).ConfigureAwait(false);
         }
     }
 
-    private byte[] BuildV2Packet(
-        byte systemId,
-        byte componentId,
-        uint messageId,
-        ReadOnlySpan<byte> payload)
+    private byte[] BuildV2Packet(byte systemId, byte componentId, uint messageId, ReadOnlySpan<byte> payload)
     {
         var packetLength = 10 + payload.Length + 2;
 
@@ -179,13 +218,10 @@ public sealed class FakeMavLinkVehicle2 : IAsyncDisposable
 
         if (!crcExtraProvider.TryGetCrcExtra(messageId, out var crcExtra))
         {
-            throw new InvalidOperationException(
-                $"No CRC extra registered for message {messageId}");
+            throw new InvalidOperationException($"No CRC extra registered for message {messageId}");
         }
 
-        var crc = MavLinkCrc.Calculate(
-            packet.AsSpan(1, 9 + payload.Length),
-            crcExtra);
+        var crc = MavLinkCrc.Calculate(packet.AsSpan(1, 9 + payload.Length), crcExtra);
 
         var crcOffset = 10 + payload.Length;
 
