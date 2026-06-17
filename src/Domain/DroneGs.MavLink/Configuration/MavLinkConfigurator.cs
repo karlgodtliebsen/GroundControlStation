@@ -24,10 +24,12 @@ public static class MavLinkConfigurator
     /// <returns>The updated service collection.</returns>
     public static IServiceCollection AddMavLinkServices(this IServiceCollection services, IConfiguration configuration)
     {
+        services.TryAddSingleton<IMavLinkClient, MavLinkClient>();
+        services.TryAddSingleton<IMavLinkConnection, MavLinkConnection>();
+
+
         services.TryAddSingleton<IMavLinkCrcExtraProvider, CommonMavLinkCrcExtraProvider>();
         services.TryAddSingleton<IMavLinkFrameParser, MavLinkV2FrameParser>();
-        services.TryAddSingleton<IMavLinkConnection, MavLinkConnection>();
-        services.TryAddSingleton<IMavLinkClient, MavLinkClient>();
         services.TryAddSingleton<IMavLinkCommandEncoder, MavLinkCommandEncoder>();
         services.TryAddSingleton<IMavLinkMessageDecoder, MavLinkMessageDecoder>();
 

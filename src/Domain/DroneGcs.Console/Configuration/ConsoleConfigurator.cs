@@ -1,7 +1,6 @@
 ﻿using Domain.Library.Configuration;
 
 using DroneGcs.Core.Configuration;
-using DroneGcs.Simulator.SmokeTests;
 using DroneGcs.Transport;
 using DroneGcs.Transport.Configuration;
 
@@ -9,27 +8,26 @@ using DroneGs.MavLink.Configuration;
 
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
-using Microsoft.Extensions.DependencyInjection.Extensions;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 
 
-namespace DroneGcs.Test.Configuration;
+namespace DroneGcs.Console.Configuration;
 
 /// <summary>
 /// 
 /// </summary>
-public static class TestConfigurator
+public static class ConsoleConfigurator
 {
     /// <summary>
     /// Adds test configuration services to the service collection.
     /// </summary>
-    public static IServiceCollection AddTestConfiguration()
+    public static IServiceCollection AddConfiguration()
     {
         var builder = new ConfigurationBuilder();
         IServiceCollection services = new ServiceCollection();
         IConfiguration configuration = builder.Build();
-        services.AddTestConfiguration(configuration);
+        services.AddConfiguration(configuration);
         return services;
     }
 
@@ -40,7 +38,7 @@ public static class TestConfigurator
     /// <param name="services">The service collection to which MAVLink services will be added.</param>
     /// <param name="configuration">The configuration to be used for MAVLink services.</param>
     /// <returns>The updated service collection.</returns>
-    public static IServiceCollection AddTestConfiguration(this IServiceCollection services, IConfiguration configuration)
+    public static IServiceCollection AddConfiguration(this IServiceCollection services, IConfiguration configuration)
     {
         services
             .AddLibraryServices()
@@ -48,53 +46,22 @@ public static class TestConfigurator
             .AddMavLinkTransportServices(configuration)
             .AddMavLinkServices(configuration);
 
-        services.TryAddTransient<ITransportSmokeTestService, TransportSmokeTestService>();
+        //services.TryAddTransient<ITransportSmokeTestService, TransportSmokeTestService>();
 
         return services;
     }
 
-    public static IServiceCollection AddDefaultTestLogging(this IServiceCollection services, IConfiguration configuration, ITestOutputHelper? output)
+    public static IServiceCollection AddDefaultLogging(this IServiceCollection services, IConfiguration configuration)
     {
         services.AddLogging(loggingBuilder =>
         {
             loggingBuilder.ClearProviders();
-            loggingBuilder.SetMinimumLevel(LogLevel.Trace);
-
-            loggingBuilder.AddFilter("Microsoft", LogLevel.Warning);
-            loggingBuilder.AddFilter("System", LogLevel.Warning);
-
             loggingBuilder.AddConfiguration(configuration.GetSection("Logging"));
             loggingBuilder.AddConsole();
             loggingBuilder.AddDebug();
-            if (output is not null)
-            {
-                services.AddSingleton<ILoggerProvider>(new XUnitConsoleMsLoggerProvider(output));
-            }
         });
         return services;
     }
-
-    public static IServiceCollection AddDefaultTestLogging(this IServiceCollection services, ITestOutputHelper? output)
-    {
-        services.AddLogging(loggingBuilder =>
-        {
-            loggingBuilder.ClearProviders();
-            loggingBuilder.SetMinimumLevel(LogLevel.Trace);
-
-            loggingBuilder.AddFilter("Microsoft", LogLevel.Warning);
-            loggingBuilder.AddFilter("System", LogLevel.Warning);
-
-            loggingBuilder.AddConsole();
-            loggingBuilder.AddDebug();
-            if (output is not null)
-            {
-                services.AddSingleton<ILoggerProvider>(new XUnitConsoleMsLoggerProvider(output));
-            }
-        });
-        return services;
-    }
-
-    private static readonly Random Rnd = new(1024);
 
     /// <summary>
     /// Configures test services and dependencies using the specified <see cref="IServiceProvider"/>.
@@ -104,13 +71,15 @@ public static class TestConfigurator
     public static IServiceProvider UseTestConfiguration(this IServiceProvider services)
     {
         var endPoint = services.GetRequiredService<IOptions<TransportEndpoint>>();
-        //endPoint.Value.LocalPort =  Rnd.Next(1024, 655
-        //endPoint.Value.RemotePort = endPoint.Value.LocalPort + 1; 
 
         var logger = services.GetRequiredService<ILogger<ServiceProvider>>();
+        endPoint.Value.RemoteHost = "127.0.0.1";
+        endPoint.Value.RemotePort = 14551;
 
-        logger.LogInformation($"Test configuration initialized. UDP local:  {endPoint.Value.LocalHost}:{endPoint.Value.LocalPort}");
-        logger.LogInformation($"Test configuration initialized. UDP remote: {endPoint.Value.RemoteHost}:{endPoint.Value.RemotePort}");
+        endPoint.Value.LocalHost = "0.0.0.0";
+        endPoint.Value.LocalPort = 14550;
+        logger.LogInformation($"Console configuration initialized. UDP local:  {endPoint.Value.LocalHost}:{endPoint.Value.LocalPort}");
+        logger.LogInformation($"Console configuration initialized. UDP remote: {endPoint.Value.RemoteHost}:{endPoint.Value.RemotePort}");
 
 
         services

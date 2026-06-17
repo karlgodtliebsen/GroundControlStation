@@ -7,4 +7,11 @@
     <Nullable>enable</Nullable>
   </PropertyGroup>
 
+  <ItemGroup>
+    <ProjectReference Include="..\..\Library\Domain.Library\Domain.Library.csproj" />
+    <ProjectReference Include="..\DroneGcs.Core\DroneGcs.Core.csproj" />
+    <ProjectReference Include="..\DroneGcs.Transport\DroneGcs.Transport.csproj" />
+    <ProjectReference Include="..\DroneGs.MavLink\DroneGs.MavLink.csproj" />
+  </ItemGroup>
+
 </Project>

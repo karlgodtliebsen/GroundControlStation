@@ -89,7 +89,7 @@ public sealed class MavLinkClient : IMavLinkClient
                     continue;
                 }
 
-                logger.LogDebug("Received {BytesRead} bytes from MAVLink transport.", result.BytesRead);
+                logger.LogDebug("MavLinkClient - Received {BytesRead} bytes from MAVLink transport.", result.BytesRead);
                 var copy = new byte[result.BytesRead];
                 buffer.AsMemory(0, result.BytesRead).CopyTo(copy);
 
@@ -113,13 +113,13 @@ public sealed class MavLinkClient : IMavLinkClient
         }
         catch (Exception ex)
         {
-            Console.WriteLine($"Unexpected exception in ReceiveLoop: {ex}");
+            logger.LogError(ex, "MavLinkClient - Unexpected exception in ReceiveLoop.");
             throw;
         }
         finally
         {
             await transport.DisconnectAsync(CancellationToken.None).ConfigureAwait(false);
-            logger.LogDebug("MAVLink client stopped.");
+            logger.LogDebug("MavLinkClient - MAVLink client stopped.");
             //await transport.DisconnectAsync(cancellationToken).ConfigureAwait(false);
         }
     }
@@ -140,7 +140,7 @@ public sealed class MavLinkClient : IMavLinkClient
         }
 
         await transport.WriteAsync(data, cancellationToken).ConfigureAwait(false);
-        logger.LogDebug("Sent {Bytes} bytes to MAVLink transport.", data.Length);
+        logger.LogDebug("MavLinkClient - Sent {Bytes} bytes to MAVLink transport.", data.Length);
     }
 
     /// <summary>
@@ -163,7 +163,7 @@ public sealed class MavLinkClient : IMavLinkClient
         cancellationTokenSource.Dispose();
         cancellationTokenSource = null;
         receiveTask = null;
-        logger.LogDebug("MAVLink client stopped.");
+        logger.LogDebug("MavLinkClient - MAVLink client stopped.");
     }
 
     /// <summary>
@@ -182,7 +182,7 @@ public sealed class MavLinkClient : IMavLinkClient
 
         disposed = true;
         GC.SuppressFinalize(this);
-        logger.LogDebug("MAVLink client disposed.");
+        logger.LogDebug("MavLinkClient - MAVLink client disposed.");
     }
 
     private void ThrowIfDisposed()

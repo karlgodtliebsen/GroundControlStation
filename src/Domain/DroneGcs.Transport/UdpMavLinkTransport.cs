@@ -67,7 +67,7 @@ public sealed class UdpMavLinkTransport : IMavLinkTransport
             new IPEndPoint(localAddress, localPort));
 
         isConnected = true;
-        logger.LogDebug("UDP transport connected to {RemoteEndPoint}", remoteEndPoint);
+        logger.LogDebug("UdpMavLinkTransport - UDP transport connected to {RemoteEndPoint}", remoteEndPoint);
         return Task.CompletedTask;
     }
 
@@ -91,7 +91,7 @@ public sealed class UdpMavLinkTransport : IMavLinkTransport
         result.Buffer.AsMemory(0, bytesToCopy).CopyTo(buffer);
 
         var remoteEndpoint = new MavLinkEndpoint(endpoint.Protocol, result.RemoteEndPoint.Address.ToString(), result.RemoteEndPoint.Port);
-        logger.LogDebug("Received {Bytes} bytes from {RemoteEndPoint}", bytesToCopy, remoteEndpoint);
+        logger.LogDebug("UdpMavLinkTransport - Received {Bytes} bytes from {RemoteEndPoint}", bytesToCopy, remoteEndpoint);
         return new TransportReceiveResult(bytesToCopy, remoteEndpoint);
     }
 
@@ -109,7 +109,7 @@ public sealed class UdpMavLinkTransport : IMavLinkTransport
         }
 
         await udpClient.SendAsync(data, remoteEndPoint, cancellationToken).ConfigureAwait(false);
-        logger.LogDebug("Sent {Bytes} bytes to {RemoteEndPoint}", data.Length, remoteEndPoint);
+        logger.LogDebug("UdpMavLinkTransport - Sent {Bytes} bytes to {RemoteEndPoint}", data.Length, remoteEndPoint);
     }
 
     /// <inheritdoc />
@@ -125,7 +125,7 @@ public sealed class UdpMavLinkTransport : IMavLinkTransport
             udpClient = null!;
         }
 
-        logger.LogDebug("UDP transport disconnected from {RemoteEndPoint}", remoteEndPoint);
+        logger.LogDebug("UdpMavLinkTransport - UDP transport disconnected from {RemoteEndPoint}", remoteEndPoint);
         return Task.CompletedTask;
     }
 
@@ -140,7 +140,7 @@ public sealed class UdpMavLinkTransport : IMavLinkTransport
             udpClient = null!;
         }
 
-        logger.LogDebug("UDP transport disposed");
+        logger.LogDebug("UdpMavLinkTransport - UDP transport disposed");
         GC.SuppressFinalize(this);
         return ValueTask.CompletedTask;
     }

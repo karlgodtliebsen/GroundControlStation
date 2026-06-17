@@ -16,16 +16,16 @@ namespace DroneGcs.Test.SmokeTests;
 /// <summary>
 /// Tests for the domain layer implementations.
 /// </summary>
-public class SmokeTests
+public class SmokeTestsDroneBridge
 {
     private readonly ITestOutputHelper output;
     private readonly IServiceProvider serviceProvider;
 
     /// <summary>
-    /// Initializes a new instance of the <see cref="SmokeTests"/> class.
+    /// Initializes a new instance of the <see cref="SmokeTestsDroneBridge"/> class.
     /// </summary>
     /// <param name="output">The test output helper.</param>
-    public SmokeTests(ITestOutputHelper output)
+    public SmokeTestsDroneBridge(ITestOutputHelper output)
     {
         this.output = output;
 
@@ -66,7 +66,9 @@ public class SmokeTests
         endPoint.Value.LocalHost = "0.0.0.0";
         endPoint.Value.RemoteHost = "192.168.1.248";
 
-        var logger = serviceProvider.GetRequiredService<ILogger<SmokeTests>>();
+        //for tcp: 127.0.0.1 on port 5760
+
+        var logger = serviceProvider.GetRequiredService<ILogger<SmokeTestsDroneBridge>>();
 
         logger.LogInformation($"Test configuration initialized. UDP local:  {endPoint.Value.LocalHost}:{endPoint.Value.LocalPort}");
         logger.LogInformation($"Test configuration initialized. UDP remote: {endPoint.Value.RemoteHost}:{endPoint.Value.RemotePort}");
@@ -74,7 +76,7 @@ public class SmokeTests
 
 
     /// <summary>
-    /// Sends a UDP probe to the DroneBridge without expecting any response.
+    /// Sends a TCP  probe to the DroneBridge without expecting any response.
     /// </summary>
     [Fact]
     public async Task Should_Send_Tcp_Probe_To_DroneBridge_Without_Error()
@@ -87,6 +89,9 @@ public class SmokeTests
     }
 
 
+    /// <summary>
+    /// Sends a UDP probe to the DroneBridge without expecting any response.
+    /// </summary>
     [Fact]
     public async Task Should_Send_Udp_Probe_To_DroneBridge_Without_Error()
     {
@@ -121,7 +126,7 @@ public class SmokeTests
     }
 
     /// <summary>
-    /// 
+    /// Receives a MAVLink heartbeat message through the DroneBridge.
     /// </summary>
     [Fact]
     public async Task Should_Receive_MavLink_Heartbeat_Through_DroneBridge()

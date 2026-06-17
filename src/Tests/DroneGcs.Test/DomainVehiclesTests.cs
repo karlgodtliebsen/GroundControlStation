@@ -2,6 +2,7 @@
 using DroneGcs.Core.Services;
 using DroneGcs.Simulator;
 using DroneGcs.Test.Configuration;
+
 using Microsoft.Extensions.DependencyInjection;
 
 namespace DroneGcs.Test;
@@ -36,7 +37,6 @@ public class DomainVehiclesTests
     public async Task Should_Return_All_Simulated_VehiclesAsync()
     {
         var registry = serviceProvider.GetRequiredService<IVehicleRegistry>();
-        // var vehicleService = serviceProvider.GetRequiredService<IVehicleService>();
         await using var vehicleService = serviceProvider.GetRequiredService<IVehicleService>();
 
         new SimulatedVehicleState
@@ -67,14 +67,8 @@ public class DomainVehiclesTests
     [Fact]
     public async Task Should_Return_Specific_Simulated_VehicleAsync()
     {
-        var services = TestConfigurator
-            .AddTestConfiguration()
-            .BuildServiceProvider();
-
-        services.UseTestConfiguration();
-
-        var registry = services.GetRequiredService<IVehicleRegistry>();
-        await using var vehicleService = services.GetRequiredService<IVehicleService>();
+        var registry = serviceProvider.GetRequiredService<IVehicleRegistry>();
+        await using var vehicleService = serviceProvider.GetRequiredService<IVehicleService>();
 
         new SimulatedVehicleState
         {
@@ -98,13 +92,7 @@ public class DomainVehiclesTests
     [Fact]
     public void Should_Throw_When_Getting_Unknown_Vehicle()
     {
-        var services = TestConfigurator
-            .AddTestConfiguration()
-            .BuildServiceProvider();
-
-        services.UseTestConfiguration();
-
-        var vehicleService = services.GetRequiredService<IVehicleService>();
+        var vehicleService = serviceProvider.GetRequiredService<IVehicleService>();
 
         Assert.Throws<InvalidOperationException>(() => vehicleService.GetVehicle(new VehicleId(99, 1)));
     }

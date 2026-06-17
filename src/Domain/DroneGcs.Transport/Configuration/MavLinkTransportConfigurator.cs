@@ -18,7 +18,7 @@ public static class MavLinkTransportConfigurator
     /// <returns>The updated service collection.</returns>
     public static IServiceCollection AddMavLinkTransportServices(this IServiceCollection services, IConfiguration configuration)
     {
-        services.TryAddSingleton<IMavLinkTransport, UdpMavLinkTransport>();
+        services.TryAddTransient<IMavLinkTransport, UdpMavLinkTransport>();
 
         //TODO: must be based on  configuration data
         services.AddSingleton(Options.Create(new TransportEndpoint()));

@@ -1,9 +1,10 @@
 ﻿using DroneGcs.Core.Commands;
-using DroneGcs.Core.DomainEvents;
 using DroneGcs.Core.VehicleHandler;
 
 using DroneGs.MavLink.Messages;
 using DroneGs.MavLink.Services;
+
+using Microsoft.Extensions.Logging;
 
 namespace DroneGcs.Core.Services;
 
@@ -16,7 +17,7 @@ namespace DroneGcs.Core.Services;
 /// <param name="attitudeHandler">The handler for attitude messages.</param>
 /// <param name="batteryHandler">The handler for battery status messages.</param>
 /// <param name="commandAckTracker"></param>
-/// <param name="eventHub"></param>
+/// <param name="logger"></param>
 public sealed class VehicleMessagePump(
     IMavLinkConnection connection,
     IHeartbeatVehicleHandler heartbeatHandler,
@@ -24,7 +25,7 @@ public sealed class VehicleMessagePump(
     IAttitudeVehicleHandler attitudeHandler,
     IBatteryVehicleHandler batteryHandler,
     ICommandAckTracker commandAckTracker,
-    IDomainEventHub eventHub)
+    ILogger<VehicleMessagePump> logger)
     : IVehicleMessagePump
 {
     /// <summary>
@@ -33,11 +34,14 @@ public sealed class VehicleMessagePump(
     /// <param name="cancellationToken">A token to monitor for cancellation requests.</param>
     public async Task StartAsync(CancellationToken cancellationToken)
     {
+        logger.LogTrace("VehicleMessagePump - Starting message pump.");
         await foreach (var message in connection.ReadMessagesAsync(cancellationToken))
         {
+            logger.LogTrace("VehicleMessagePump - Received {MessageType}", message.GetType().Name);
             switch (message)
             {
                 case HeartbeatMessage heartbeat:
+                    logger.LogInformation("VehicleMessagePump - Handling heartbeat from {SystemId}:{ComponentId}", heartbeat.SystemId, heartbeat.ComponentId);
                     heartbeatHandler.Handle(heartbeat);
                     break;
 
