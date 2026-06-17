@@ -36,6 +36,7 @@ public static class DomainConfigurator
         services.TryAddSingleton<IPositionVehicleHandler, PositionVehicleHandler>();
         services.TryAddSingleton<IDomainEventHub, DomainEventHub>();
         services.TryAddSingleton<ICommandAckTracker, CommandAckTracker>();
+        services.TryAddSingleton<IVehicleCommandPolicy, VehicleCommandPolicy>();
         services.AddDebugLogging();
 
         return services;

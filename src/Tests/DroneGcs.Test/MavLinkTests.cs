@@ -1,4 +1,5 @@
-﻿using DroneGcs.Test.Configuration;
+﻿using DroneGcs.Simulator;
+using DroneGcs.Test.Configuration;
 
 using DroneGs.MavLink;
 using DroneGs.MavLink.Client;
@@ -14,6 +15,8 @@ namespace DroneGcs.Test;
 public class MavLinkTests
 {
     private readonly ITestOutputHelper output;
+
+    private readonly ServiceProvider serviceProvider;
     //UDP transport
     //Receive loop
     //Events
@@ -23,6 +26,12 @@ public class MavLinkTests
     public MavLinkTests(ITestOutputHelper output)
     {
         this.output = output;
+        var services = TestConfigurator
+            .AddTestConfiguration()
+            .AddDefaultTestLogging(output);
+
+        serviceProvider = services.BuildServiceProvider();
+        serviceProvider.UseTestConfiguration();
     }
 
     /// <summary>
@@ -31,14 +40,8 @@ public class MavLinkTests
     [Fact]
     public async Task Should_Receive_Data_From_Fake_Vehicle()
     {
-        var services = TestConfigurator.AddTestConfiguration().BuildServiceProvider();
-        services.UseTestConfiguration();
-        //var domainFactory = services.GetRequiredService<IDomainFactory>();
-        //var transport = services.GetRequiredService<IMavLinkTransport>();
-        // await using var client = domainFactory.Create<IMavLinkClient, IMavLinkTransport>(transport);
-
         var received = new TaskCompletionSource<byte[]>();
-        await using var client = services.GetRequiredService<IMavLinkClient>();
+        await using var client = serviceProvider.GetRequiredService<IMavLinkClient>();
 
         client.DataReceived += (data, _) =>
         {
@@ -66,15 +69,8 @@ public class MavLinkTests
     [Fact]
     public async Task Should_Receive_Valid_MavLinkV2_Heartbeat_Frame()
     {
-        var services = TestConfigurator.AddTestConfiguration().BuildServiceProvider();
-        services.UseTestConfiguration();
-        // var domainFactory = services.GetRequiredService<IDomainFactory>();
-        //var transport = services.GetRequiredService<IMavLinkTransport>();
-
-        //await using var client = domainFactory.Create<IMavLinkClient, IMavLinkTransport>(transport);
-
         var received = new TaskCompletionSource<byte[]>(TaskCreationOptions.RunContinuationsAsynchronously);
-        await using var client = services.GetRequiredService<IMavLinkClient>();
+        await using var client = serviceProvider.GetRequiredService<IMavLinkClient>();
 
         client.DataReceived += (data, _) =>
         {
@@ -85,8 +81,8 @@ public class MavLinkTests
         await client.StartAsync(TestContext.Current.CancellationToken);
 
         await using var simulator = new FakeMavLinkVehicle2(
-            services.GetRequiredService<IMavLinkFrameParser>(),
-            services.GetRequiredService<IMavLinkCrcExtraProvider>(), "127.0.0.1", 14550, 14551, TimeSpan.FromMilliseconds(100));
+            serviceProvider.GetRequiredService<IMavLinkFrameParser>(),
+            serviceProvider.GetRequiredService<IMavLinkCrcExtraProvider>(), "127.0.0.1", 14550, 14551, TimeSpan.FromMilliseconds(100));
 
         await simulator.StartAsync(TestContext.Current.CancellationToken);
 
@@ -147,10 +143,8 @@ public class MavLinkTests
     [Fact]
     public async Task Should_Parse_Heartbeat_Frame_From_Fake_Vehicle()
     {
-        var services = TestConfigurator.AddTestConfiguration().BuildServiceProvider();
-        services.UseTestConfiguration();
-        await using var client = services.GetRequiredService<IMavLinkClient>();
-        await using var connection = services.GetRequiredService<IMavLinkConnection>();
+        await using var client = serviceProvider.GetRequiredService<IMavLinkClient>();
+        await using var connection = serviceProvider.GetRequiredService<IMavLinkConnection>();
 
         await connection.StartAsync(TestContext.Current.CancellationToken);
 
@@ -159,8 +153,8 @@ public class MavLinkTests
         output.WriteLine($"Transport IsConnected: {client.IsConnected}");
 
         await using var simulator = new FakeMavLinkVehicle2(
-            services.GetRequiredService<IMavLinkFrameParser>(),
-            services.GetRequiredService<IMavLinkCrcExtraProvider>(), "127.0.0.1", 14550, 14551, TimeSpan.FromMilliseconds(100));
+            serviceProvider.GetRequiredService<IMavLinkFrameParser>(),
+            serviceProvider.GetRequiredService<IMavLinkCrcExtraProvider>(), "127.0.0.1", 14550, 14551, TimeSpan.FromMilliseconds(100));
 
         await simulator.StartAsync(TestContext.Current.CancellationToken);
 

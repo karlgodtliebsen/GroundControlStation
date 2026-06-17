@@ -1,5 +1,7 @@
 ﻿using System.IO.Ports;
 
+using Microsoft.Extensions.Logging;
+
 namespace DroneGcs.Transport;
 
 /// <summary>
@@ -7,18 +9,25 @@ namespace DroneGcs.Transport;
 /// </summary>
 public sealed class SerialMavLinkTransport : IMavLinkTransport
 {
+    private readonly ILogger<SerialMavLinkTransport> logger;
     private readonly SerialPort serialPort;
     private readonly MavLinkEndpoint endpoint;
 
     /// <summary>
     /// Initializes a new instance of the <see cref="SerialMavLinkTransport"/> class.
     /// </summary>
+    /// <param name="logger">The logger instance.</param>
     /// <param name="portName">The name of the serial port.</param>
     /// <param name="baudRate">The baud rate for the serial port.</param>
     /// <exception cref="ArgumentException">Thrown when the port name is null or whitespace.</exception>
-    public SerialMavLinkTransport(string portName, int baudRate = 115200)
+    public SerialMavLinkTransport(ILogger<SerialMavLinkTransport> logger, string portName, int baudRate = 115200)
     {
-        if (string.IsNullOrWhiteSpace(portName)) throw new ArgumentException("LocalPort name must be specified.", nameof(portName));
+        if (string.IsNullOrWhiteSpace(portName))
+        {
+            throw new ArgumentException("LocalPort name must be specified.", nameof(portName));
+        }
+
+        this.logger = logger;
 
         serialPort = new SerialPort(
             portName,
@@ -42,35 +51,42 @@ public sealed class SerialMavLinkTransport : IMavLinkTransport
     {
         cancellationToken.ThrowIfCancellationRequested();
 
-        if (!serialPort.IsOpen) serialPort.Open();
+        if (!serialPort.IsOpen)
+        {
+            serialPort.Open();
+        }
 
+        logger.LogDebug("Serial port {PortName} opened at {BaudRate} baud.", serialPort.PortName, serialPort.BaudRate);
         return Task.CompletedTask;
     }
 
     /// <inheritdoc />
-    public async ValueTask<TransportReceiveResult> ReadAsync(
-        Memory<byte> buffer,
-        CancellationToken cancellationToken)
+    public async ValueTask<TransportReceiveResult> ReadAsync(Memory<byte> buffer, CancellationToken cancellationToken)
     {
-        if (!IsConnected) throw new InvalidOperationException("Serial port is closed.");
+        if (!IsConnected)
+        {
+            throw new InvalidOperationException("Serial port is closed.");
+        }
 
         var bytesRead = await serialPort.BaseStream
             .ReadAsync(buffer, cancellationToken)
             .ConfigureAwait(false);
-
+        logger.LogDebug("Read {BytesRead} bytes from serial port {PortName}.", bytesRead, serialPort.PortName);
         return new TransportReceiveResult(bytesRead, endpoint);
     }
 
     /// <inheritdoc />
-    public async ValueTask WriteAsync(
-        ReadOnlyMemory<byte> data,
-        CancellationToken cancellationToken)
+    public async ValueTask WriteAsync(ReadOnlyMemory<byte> data, CancellationToken cancellationToken)
     {
-        if (!IsConnected) throw new InvalidOperationException("Serial port is closed.");
+        if (!IsConnected)
+        {
+            throw new InvalidOperationException("Serial port is closed.");
+        }
 
         await serialPort.BaseStream
             .WriteAsync(data, cancellationToken)
             .ConfigureAwait(false);
+        logger.LogDebug("Wrote {BytesWritten} bytes to serial port {PortName}.", data.Length, serialPort.PortName);
     }
 
     /// <inheritdoc />
@@ -78,19 +94,26 @@ public sealed class SerialMavLinkTransport : IMavLinkTransport
     {
         cancellationToken.ThrowIfCancellationRequested();
 
-        if (serialPort.IsOpen) serialPort.Close();
+        if (serialPort.IsOpen)
+        {
+            serialPort.Close();
+        }
 
+        logger.LogDebug("Serial port {PortName} closed.", serialPort.PortName);
         return Task.CompletedTask;
     }
 
     /// <inheritdoc />
     public ValueTask DisposeAsync()
     {
-        if (serialPort.IsOpen) serialPort.Close();
+        if (serialPort.IsOpen)
+        {
+            serialPort.Close();
+        }
 
         serialPort.Dispose();
         GC.SuppressFinalize(this);
-
+        logger.LogDebug("Serial port {PortName} disposed.", serialPort.PortName);
         return ValueTask.CompletedTask;
     }
 }

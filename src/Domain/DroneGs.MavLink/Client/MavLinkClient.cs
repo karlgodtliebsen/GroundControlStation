@@ -1,5 +1,6 @@
 ﻿using DroneGcs.Transport;
 
+using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 
 namespace DroneGs.MavLink.Client;
@@ -10,6 +11,7 @@ namespace DroneGs.MavLink.Client;
 public sealed class MavLinkClient : IMavLinkClient
 {
     private readonly IMavLinkTransport transport;
+    private readonly ILogger<MavLinkClient> logger;
     private readonly int receiveBufferSize;
 
     private CancellationTokenSource? cancellationTokenSource;
@@ -36,11 +38,13 @@ public sealed class MavLinkClient : IMavLinkClient
     /// </summary>
     /// <param name="transport">The MAVLink transport to use for communication.</param>
     /// <param name="options">The options for configuring the MAVLink client.</param>
+    /// <param name="logger">The logger instance.</param>
     /// <exception cref="ArgumentNullException">Thrown if <paramref name="transport"/> is null.</exception>
     /// <exception cref="ArgumentOutOfRangeException">Thrown if <paramref name="options"/> is null or contains invalid values.</exception>
-    public MavLinkClient(IMavLinkTransport transport, IOptions<TransportEndpoint> options)
+    public MavLinkClient(IMavLinkTransport transport, IOptions<TransportEndpoint> options, ILogger<MavLinkClient> logger)
     {
         this.transport = transport ?? throw new ArgumentNullException(nameof(transport));
+        this.logger = logger;
         receiveBufferSize = options.Value.ReceiveBufferSize;
 
         if (receiveBufferSize <= 0)
@@ -67,6 +71,7 @@ public sealed class MavLinkClient : IMavLinkClient
         await transport.ConnectAsync(cancellationTokenSource.Token).ConfigureAwait(false);
 
         receiveTask = Task.Run(() => ReceiveLoopAsync(cancellationTokenSource.Token), CancellationToken.None);
+        logger.LogDebug("MAVLink client started.");
     }
 
     private async Task ReceiveLoopAsync(CancellationToken cancellationToken)
@@ -84,6 +89,7 @@ public sealed class MavLinkClient : IMavLinkClient
                     continue;
                 }
 
+                logger.LogDebug("Received {BytesRead} bytes from MAVLink transport.", result.BytesRead);
                 var copy = new byte[result.BytesRead];
                 buffer.AsMemory(0, result.BytesRead).CopyTo(copy);
 
@@ -113,6 +119,7 @@ public sealed class MavLinkClient : IMavLinkClient
         finally
         {
             await transport.DisconnectAsync(CancellationToken.None).ConfigureAwait(false);
+            logger.LogDebug("MAVLink client stopped.");
             //await transport.DisconnectAsync(cancellationToken).ConfigureAwait(false);
         }
     }
@@ -133,6 +140,7 @@ public sealed class MavLinkClient : IMavLinkClient
         }
 
         await transport.WriteAsync(data, cancellationToken).ConfigureAwait(false);
+        logger.LogDebug("Sent {Bytes} bytes to MAVLink transport.", data.Length);
     }
 
     /// <summary>
@@ -155,6 +163,7 @@ public sealed class MavLinkClient : IMavLinkClient
         cancellationTokenSource.Dispose();
         cancellationTokenSource = null;
         receiveTask = null;
+        logger.LogDebug("MAVLink client stopped.");
     }
 
     /// <summary>
@@ -173,6 +182,7 @@ public sealed class MavLinkClient : IMavLinkClient
 
         disposed = true;
         GC.SuppressFinalize(this);
+        logger.LogDebug("MAVLink client disposed.");
     }
 
     private void ThrowIfDisposed()

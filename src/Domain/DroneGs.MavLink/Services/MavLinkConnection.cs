@@ -5,6 +5,8 @@ using DroneGcs.Transport;
 using DroneGs.MavLink.Client;
 using DroneGs.MavLink.Messages;
 
+using Microsoft.Extensions.Logging;
+
 namespace DroneGs.MavLink.Services;
 
 /// <summary>
@@ -15,6 +17,7 @@ public sealed class MavLinkConnection : IMavLinkConnection
     private readonly IMavLinkClient client;
     private readonly IMavLinkFrameParser frameParser;
     private readonly IMavLinkMessageDecoder messageDecoder;
+    private readonly ILogger<MavLinkConnection> logger;
 
     private readonly Channel<MavLinkFrame> frames = Channel.CreateUnbounded<MavLinkFrame>(new UnboundedChannelOptions
     {
@@ -28,12 +31,14 @@ public sealed class MavLinkConnection : IMavLinkConnection
     /// <param name="client"></param>
     /// <param name="frameParser"></param>
     /// <param name="messageDecoder"></param>
+    /// <param name="logger">The logger instance to use for logging.</param>
     /// <exception cref="ArgumentNullException"></exception>
-    public MavLinkConnection(IMavLinkClient client, IMavLinkFrameParser frameParser, IMavLinkMessageDecoder messageDecoder)
+    public MavLinkConnection(IMavLinkClient client, IMavLinkFrameParser frameParser, IMavLinkMessageDecoder messageDecoder, ILogger<MavLinkConnection> logger)
     {
         this.client = client ?? throw new ArgumentNullException(nameof(client));
         this.frameParser = frameParser ?? throw new ArgumentNullException(nameof(frameParser));
         this.messageDecoder = messageDecoder ?? throw new ArgumentNullException(nameof(messageDecoder));
+        this.logger = logger ?? throw new ArgumentNullException(nameof(logger));
 
         this.client.DataReceived += OnDataReceivedAsync;
     }
@@ -44,8 +49,8 @@ public sealed class MavLinkConnection : IMavLinkConnection
     /// <param name="cancellationToken"></param>
     public async Task StartAsync(CancellationToken cancellationToken = default)
     {
-        await client.StartAsync(cancellationToken)
-            .ConfigureAwait(false);
+        await client.StartAsync(cancellationToken).ConfigureAwait(false);
+        logger.LogDebug("MAVLink connection started.");
     }
 
     /// <summary>
@@ -55,6 +60,7 @@ public sealed class MavLinkConnection : IMavLinkConnection
     /// <returns></returns>
     public IAsyncEnumerable<MavLinkFrame> ReadFramesAsync(CancellationToken cancellationToken = default)
     {
+        logger.LogDebug("Reading MAVLink frames.");
         return frames.Reader.ReadAllAsync(cancellationToken);
     }
 
@@ -65,6 +71,7 @@ public sealed class MavLinkConnection : IMavLinkConnection
     /// <returns></returns>
     public IAsyncEnumerable<MavLinkMessage> ReadMessagesAsync(CancellationToken cancellationToken = default)
     {
+        logger.LogDebug("Reading MAVLink messages.");
         return messages.Reader.ReadAllAsync(cancellationToken);
     }
 
@@ -81,11 +88,13 @@ public sealed class MavLinkConnection : IMavLinkConnection
     /// <param name="cancellationToken">A cancellation token to cancel the operation.</param>
     public async ValueTask SendRawAsync(ReadOnlyMemory<byte> data, CancellationToken cancellationToken = default)
     {
+        logger.LogDebug("Sending raw MAVLink data.");
         await client.SendAsync(data, cancellationToken).ConfigureAwait(false);
     }
 
     private ValueTask OnDataReceivedAsync(MavLinkDataReceived received, CancellationToken cancellationToken)
     {
+        logger.LogDebug("Data received at {ReceivedAt}", received.ReceivedAt);
         var parsedFrames = frameParser.Parse(received.Data.Span, received.ReceivedAt);
 
         foreach (var frame in parsedFrames)
@@ -119,5 +128,6 @@ public sealed class MavLinkConnection : IMavLinkConnection
         await client.DisposeAsync()
             .ConfigureAwait(false);
         GC.SuppressFinalize(this);
+        logger.LogDebug("MAVLink connection disposed.");
     }
 }

@@ -3,6 +3,7 @@
 using DroneGcs.Core.Commands;
 using DroneGcs.Core.Models;
 using DroneGcs.Core.Services;
+using DroneGcs.Simulator;
 using DroneGcs.Test.Configuration;
 using DroneGcs.Transport;
 
@@ -31,7 +32,10 @@ public class DomainVehicleServiceTests
         this.output = output;
         var logger = NSubstitute.Substitute.For<ILogger<EventHub>>();
 
-        var services = TestConfigurator.AddTestConfiguration();
+        var services = TestConfigurator
+            .AddTestConfiguration()
+            .AddDefaultTestLogging(output);
+
         services.AddSingleton<ILogger<EventHub>>(logger);
         serviceProvider = services.BuildServiceProvider();
         serviceProvider.UseTestConfiguration();
@@ -44,9 +48,6 @@ public class DomainVehicleServiceTests
     public async Task Should_Arm_Vehicle_Through_VehicleService_When_Command_Is_Acked()
     {
         var endpoint = serviceProvider.GetRequiredService<IOptions<TransportEndpoint>>().Value;
-
-        output.WriteLine($"UDP local:  {endpoint.LocalHost}:{endpoint.LocalPort}");
-        output.WriteLine($"UDP remote: {endpoint.RemoteHost}:{endpoint.RemotePort}");
 
         var vehicleId = new VehicleId(1, 1);
 
@@ -206,18 +207,22 @@ public class DomainVehicleServiceTests
             TimeSpan.FromSeconds(5),
             TestContext.Current.CancellationToken);
 
-        var response = await vehicleService.SetModeAsync(vehicleId, VehicleMode.Guided, TestContext.Current.CancellationToken);
+        var armResponse = await vehicleService.ArmAsync(vehicleId, TestContext.Current.CancellationToken);
 
-        Assert.Equal(VehicleCommandResult.Accepted, response.Result);
+        Assert.Equal(VehicleCommandResult.Accepted, armResponse.Result);
 
         await EventuallyAsync(
             () =>
             {
                 var state = vehicleService.GetVehicle(vehicleId);
-                Assert.Equal(VehicleMode.Guided, state.Mode);
+                Assert.True(state.IsArmed);
             },
             TimeSpan.FromSeconds(5),
             TestContext.Current.CancellationToken);
+
+        var response = await vehicleService.SetModeAsync(vehicleId, VehicleMode.Guided, TestContext.Current.CancellationToken);
+
+        Assert.Equal(VehicleCommandResult.Accepted, response.Result);
     }
 
     /// <summary>
@@ -338,6 +343,32 @@ public class DomainVehicleServiceTests
 
         Assert.Equal(VehicleConnectionState.Offline, vehicle.Vehicle.State.ConnectionState);
         var response = await vehicleService.ArmAsync(vehicleId, TestContext.Current.CancellationToken);
+        Assert.Equal(VehicleCommandResult.Denied, response.Result);
+    }
+
+    /// <summary>
+    /// Tests that the vehicle service correctly returns a denied result when attempting to set guided mode while the vehicle is not armed.
+    /// </summary>
+    [Fact]
+    public async Task Should_Deny_Guided_Mode_When_Vehicle_Is_Not_Armed()
+    {
+        var registry = serviceProvider.GetRequiredService<IVehicleRegistry>();
+        var vehicleService = serviceProvider.GetRequiredService<IVehicleService>();
+
+        var vehicleId = new VehicleId(1, 1);
+
+        registry.RegisterOrUpdateHeartbeat(
+            vehicleId,
+            0,
+            2,
+            3,
+            0,
+            4,
+            3,
+            DateTimeOffset.UtcNow);
+
+        var response = await vehicleService.SetModeAsync(vehicleId, VehicleMode.Guided, TestContext.Current.CancellationToken);
+
         Assert.Equal(VehicleCommandResult.Denied, response.Result);
     }
 

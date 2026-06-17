@@ -102,8 +102,7 @@ public sealed class MavLinkCommandEncoder(IMavLinkCrcExtraProvider crcExtraProvi
 
         if (!crcExtraProvider.TryGetCrcExtra(messageId, out var crcExtra))
         {
-            throw new InvalidOperationException(
-                $"No CRC extra registered for MAVLink message id {messageId}.");
+            throw new InvalidOperationException($"No CRC extra registered for MAVLink message id {messageId}.");
         }
 
         var crc = MavLinkCrc.Calculate(

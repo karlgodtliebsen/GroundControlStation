@@ -6,6 +6,7 @@ using Domain.Library.Factory.Domain.Abstractions;
 using DroneGcs.Core.Models;
 using DroneGcs.Core.Services;
 using DroneGcs.Core.VehicleHandler;
+using DroneGcs.Simulator;
 using DroneGcs.Test.Configuration;
 using DroneGcs.Transport;
 
@@ -28,6 +29,7 @@ namespace DroneGcs.Test;
 public class VehicleTests
 {
     private readonly ITestOutputHelper output;
+    private readonly IServiceProvider serviceProvider;
 
     /// <summary>
     /// Initializes a new instance of the <see cref="VehicleTests"/> class.
@@ -36,6 +38,12 @@ public class VehicleTests
     public VehicleTests(ITestOutputHelper output)
     {
         this.output = output;
+        var services = TestConfigurator
+            .AddTestConfiguration()
+            .AddDefaultTestLogging(output);
+
+        serviceProvider = services.BuildServiceProvider();
+        serviceProvider.UseTestConfiguration();
     }
 
     /// <summary>
@@ -44,10 +52,8 @@ public class VehicleTests
     [Fact]
     public void Should_Register_Vehicle_When_Heartbeat_Is_Received()
     {
-        var services = TestConfigurator.AddTestConfiguration().BuildServiceProvider();
-        services.UseTestConfiguration();
-        var domainFactory = services.GetRequiredService<IDomainFactory>();
-        var registry = services.GetRequiredService<IVehicleRegistry>();
+        var domainFactory = serviceProvider.GetRequiredService<IDomainFactory>();
+        var registry = serviceProvider.GetRequiredService<IVehicleRegistry>();
         var handler = domainFactory.Create<IHeartbeatVehicleHandler, IVehicleRegistry>(registry);
 
         var heartbeat = new HeartbeatMessage(
@@ -76,21 +82,18 @@ public class VehicleTests
     [Fact]
     public async Task Should_Register_Vehicle_From_Received_Heartbeat_MessageAsync()
     {
-        var services = TestConfigurator.AddTestConfiguration().BuildServiceProvider();
-        services.UseTestConfiguration();
-
-        var registry = services.GetRequiredService<IVehicleRegistry>();
-        var handler = services.GetRequiredService<IHeartbeatVehicleHandler>();
-        await using var client = services.GetRequiredService<IMavLinkClient>();
-        await using var connection = services.GetRequiredService<IMavLinkConnection>();
+        var registry = serviceProvider.GetRequiredService<IVehicleRegistry>();
+        var handler = serviceProvider.GetRequiredService<IHeartbeatVehicleHandler>();
+        await using var client = serviceProvider.GetRequiredService<IMavLinkClient>();
+        await using var connection = serviceProvider.GetRequiredService<IMavLinkConnection>();
 
         await connection.StartAsync(TestContext.Current.CancellationToken);
 
         output.WriteLine($"Client IsRunning: {client.IsRunning}");
         output.WriteLine($"Transport IsConnected: {client.IsConnected}");
         await using var simulator = new FakeMavLinkVehicle2(
-            services.GetRequiredService<IMavLinkFrameParser>(),
-            services.GetRequiredService<IMavLinkCrcExtraProvider>(), "127.0.0.1", 14550, 14551, TimeSpan.FromMilliseconds(100));
+            serviceProvider.GetRequiredService<IMavLinkFrameParser>(),
+            serviceProvider.GetRequiredService<IMavLinkCrcExtraProvider>(), "127.0.0.1", 14550, 14551, TimeSpan.FromMilliseconds(100));
 
         await simulator.StartAsync(TestContext.Current.CancellationToken);
 
@@ -115,11 +118,8 @@ public class VehicleTests
     [Fact]
     public void Should_Update_Existing_Vehicle_When_Heartbeat_Is_Repeated()
     {
-        var services = TestConfigurator.AddTestConfiguration().BuildServiceProvider();
-        services.UseTestConfiguration();
-
-        var domainFactory = services.GetRequiredService<IDomainFactory>();
-        var registry = services.GetRequiredService<IVehicleRegistry>();
+        var domainFactory = serviceProvider.GetRequiredService<IDomainFactory>();
+        var registry = serviceProvider.GetRequiredService<IVehicleRegistry>();
         var handler = domainFactory.Create<IHeartbeatVehicleHandler, IVehicleRegistry>(registry);
 
         var first = new HeartbeatMessage(
@@ -145,30 +145,18 @@ public class VehicleTests
     [Fact]
     public async Task Should_Register_Vehicle_When_Message_Pump_Receives_Heartbeat()
     {
-        var services = TestConfigurator.AddTestConfiguration().BuildServiceProvider();
-        services.UseTestConfiguration();
+        var registry = serviceProvider.GetRequiredService<IVehicleRegistry>();
 
-        var registry = services.GetRequiredService<IVehicleRegistry>();
-
-        await using var client = services.GetRequiredService<IMavLinkClient>();
-        await using var connection = services.GetRequiredService<IMavLinkConnection>();
+        await using var client = serviceProvider.GetRequiredService<IMavLinkClient>();
+        await using var connection = serviceProvider.GetRequiredService<IMavLinkConnection>();
 
         await connection.StartAsync(TestContext.Current.CancellationToken);
-
-
-        //var pump = domainFactory.Create<IVehicleMessagePump, IMavLinkConnection,
-        //    IHeartbeatVehicleHandler, IPositionVehicleHandler, IAttitudeVehicleHandler, IBatteryVehicleHandler>(
-        //    connection,
-        //    services.GetRequiredService<IHeartbeatVehicleHandler>(),
-        //    services.GetRequiredService<IPositionVehicleHandler>(),
-        //    services.GetRequiredService<IAttitudeVehicleHandler>(),
-        //    services.GetRequiredService<IBatteryVehicleHandler>());
-        var pump = services.GetRequiredService<IVehicleMessagePump>();
+        var pump = serviceProvider.GetRequiredService<IVehicleMessagePump>();
 
         var pumpTask = pump.StartAsync(TestContext.Current.CancellationToken);
         await using var simulator = new FakeMavLinkVehicle2(
-            services.GetRequiredService<IMavLinkFrameParser>(),
-            services.GetRequiredService<IMavLinkCrcExtraProvider>(), "127.0.0.1", 14550, 14551, TimeSpan.FromMilliseconds(100));
+            serviceProvider.GetRequiredService<IMavLinkFrameParser>(),
+            serviceProvider.GetRequiredService<IMavLinkCrcExtraProvider>(), "127.0.0.1", 14550, 14551, TimeSpan.FromMilliseconds(100));
 
 
         await simulator.StartAsync(TestContext.Current.CancellationToken);
@@ -189,10 +177,8 @@ public class VehicleTests
     [Fact]
     public void Should_Update_Vehicle_Position_From_GlobalPositionInt_Message()
     {
-        var services = TestConfigurator.AddTestConfiguration().BuildServiceProvider();
-        services.UseTestConfiguration();
-        var registry = services.GetRequiredService<IVehicleRegistry>();
-        var domainFactory = services.GetRequiredService<IDomainFactory>();
+        var registry = serviceProvider.GetRequiredService<IVehicleRegistry>();
+        var domainFactory = serviceProvider.GetRequiredService<IDomainFactory>();
 
         var vehicleId = new VehicleId(1, 1);
 
@@ -230,10 +216,8 @@ public class VehicleTests
     [Fact]
     public void Should_Update_Battery_From_SysStatusMessage_Message()
     {
-        var services = TestConfigurator.AddTestConfiguration().BuildServiceProvider();
-        services.UseTestConfiguration();
-        var registry = services.GetRequiredService<IVehicleRegistry>();
-        var domainFactory = services.GetRequiredService<IDomainFactory>();
+        var registry = serviceProvider.GetRequiredService<IVehicleRegistry>();
+        var domainFactory = serviceProvider.GetRequiredService<IDomainFactory>();
 
         var vehicleId = new VehicleId(1, 1);
 
@@ -269,10 +253,8 @@ public class VehicleTests
     [Fact]
     public void Should_Update_Attitude_From_AttitudeMessage()
     {
-        var services = TestConfigurator.AddTestConfiguration().BuildServiceProvider();
-        services.UseTestConfiguration();
-        var registry = services.GetRequiredService<IVehicleRegistry>();
-        var domainFactory = services.GetRequiredService<IDomainFactory>();
+        var registry = serviceProvider.GetRequiredService<IVehicleRegistry>();
+        var domainFactory = serviceProvider.GetRequiredService<IDomainFactory>();
 
         var vehicleId = new VehicleId(1, 1);
 
@@ -311,11 +293,9 @@ public class VehicleTests
     [Fact]
     public void Should_Mark_Vehicle_As_Stale_When_Heartbeat_Is_Old()
     {
-        var services = TestConfigurator.AddTestConfiguration().BuildServiceProvider();
-        services.UseTestConfiguration();
-        var eventHub = services.GetRequiredService<IEventHub>();
+        var eventHub = serviceProvider.GetRequiredService<IEventHub>();
 
-        var registry = services.GetRequiredService<IVehicleRegistry>();
+        var registry = serviceProvider.GetRequiredService<IVehicleRegistry>();
 
         var receivedAt = DateTimeOffset.UtcNow;
 
@@ -341,9 +321,7 @@ public class VehicleTests
     [Fact]
     public void Should_Mark_Vehicle_As_Offline_When_Heartbeat_Is_Very_Old()
     {
-        var services = TestConfigurator.AddTestConfiguration().BuildServiceProvider();
-        services.UseTestConfiguration();
-        var registry = services.GetRequiredService<IVehicleRegistry>();
+        var registry = serviceProvider.GetRequiredService<IVehicleRegistry>();
 
         var receivedAt = DateTimeOffset.UtcNow;
 
@@ -373,9 +351,7 @@ public class VehicleTests
     [Fact]
     public void Should_Mark_Vehicle_Online_When_New_Heartbeat_Arrives_After_Offline()
     {
-        var services = TestConfigurator.AddTestConfiguration().BuildServiceProvider();
-        services.UseTestConfiguration();
-        var registry = services.GetRequiredService<IVehicleRegistry>();
+        var registry = serviceProvider.GetRequiredService<IVehicleRegistry>();
 
 
         var receivedAt = DateTimeOffset.UtcNow;
@@ -418,9 +394,7 @@ public class VehicleTests
     [Fact]
     public void Should_Encode_Arm_CommandLong_Frame()
     {
-        var services = TestConfigurator.AddTestConfiguration().BuildServiceProvider();
-        services.UseTestConfiguration();
-        var encoder = services.GetRequiredService<IMavLinkCommandEncoder>();
+        var encoder = serviceProvider.GetRequiredService<IMavLinkCommandEncoder>();
 
         var packet = encoder.EncodeArmDisarm(
             1,
@@ -454,9 +428,6 @@ public class VehicleTests
     [Fact]
     public void Should_Decode_CommandAck_Message()
     {
-        var services = TestConfigurator.AddTestConfiguration().BuildServiceProvider();
-        services.UseTestConfiguration();
-
         var receivedAt = DateTimeOffset.UtcNow;
         var payload = new byte[]
         {
@@ -493,30 +464,27 @@ public class VehicleTests
     [Fact]
     public async Task Should_Receive_CommandAck_When_Arm_Command_Is_Sent()
     {
-        var services = TestConfigurator.AddTestConfiguration().BuildServiceProvider();
-        services.UseTestConfiguration();
-
-        var options = services.GetRequiredService<IOptions<TransportEndpoint>>();
+        var options = serviceProvider.GetRequiredService<IOptions<TransportEndpoint>>();
         var endpoint = options.Value;
 
         output.WriteLine($"UDP local: {endpoint.LocalHost}:{endpoint.LocalPort}");
         output.WriteLine($"UDP remote: {endpoint.RemoteHost}:{endpoint.RemotePort}");
 
-        await using var client = services.GetRequiredService<IMavLinkClient>();
-        await using var connection = services.GetRequiredService<IMavLinkConnection>();
+        await using var client = serviceProvider.GetRequiredService<IMavLinkClient>();
+        await using var connection = serviceProvider.GetRequiredService<IMavLinkConnection>();
         await connection.StartAsync(TestContext.Current.CancellationToken);
 
         await using var simulator =
             new FakeMavLinkVehicle2(
-                services.GetRequiredService<IMavLinkFrameParser>(),
-                services.GetRequiredService<IMavLinkCrcExtraProvider>(),
+                serviceProvider.GetRequiredService<IMavLinkFrameParser>(),
+                serviceProvider.GetRequiredService<IMavLinkCrcExtraProvider>(),
                 endpoint.LocalHost,
                 endpoint.LocalPort,
                 endpoint.RemotePort, TimeSpan.FromMilliseconds(100));
 
         await simulator.StartAsync(TestContext.Current.CancellationToken);
 
-        var encoder = services.GetRequiredService<IMavLinkCommandEncoder>();
+        var encoder = serviceProvider.GetRequiredService<IMavLinkCommandEncoder>();
 
         var armCommand = encoder.EncodeArmDisarm(1, 1, true);
 
@@ -541,10 +509,8 @@ public class VehicleTests
     [Fact]
     public void Should_Update_Armed_State_From_Heartbeat_BaseMode()
     {
-        var services = TestConfigurator.AddTestConfiguration().BuildServiceProvider();
-        services.UseTestConfiguration();
-        var registry = services.GetRequiredService<IVehicleRegistry>();
-        var handler = services.GetRequiredService<IHeartbeatVehicleHandler>();
+        var registry = serviceProvider.GetRequiredService<IVehicleRegistry>();
+        var handler = serviceProvider.GetRequiredService<IHeartbeatVehicleHandler>();
         var heartbeat = new HeartbeatMessage(
             1, 1,
             0,
@@ -566,10 +532,8 @@ public class VehicleTests
     [Fact]
     public void Should_Update_Mode_From_Heartbeat_CustomMode()
     {
-        var services = TestConfigurator.AddTestConfiguration().BuildServiceProvider();
-        services.UseTestConfiguration();
-        var domainFactory = services.GetRequiredService<IDomainFactory>();
-        var registry = services.GetRequiredService<IVehicleRegistry>();
+        var domainFactory = serviceProvider.GetRequiredService<IDomainFactory>();
+        var registry = serviceProvider.GetRequiredService<IVehicleRegistry>();
         var handler = domainFactory.Create<IHeartbeatVehicleHandler, IVehicleRegistry>(registry);
 
         var heartbeat = new HeartbeatMessage(
@@ -593,8 +557,6 @@ public class VehicleTests
     [Fact]
     public void Should_Update_Position()
     {
-        var services = TestConfigurator.AddTestConfiguration().BuildServiceProvider();
-        services.UseTestConfiguration();
         var vehicle = CreateVehicleSession();
 
         vehicle.ApplyPosition(
@@ -614,8 +576,6 @@ public class VehicleTests
     [Fact]
     public void Should_Update_Attitude()
     {
-        var services = TestConfigurator.AddTestConfiguration().BuildServiceProvider();
-        services.UseTestConfiguration();
         var vehicle = CreateVehicleSession();
 
         vehicle.ApplyAttitude(0.1, -0.2, 1.5);
@@ -632,8 +592,6 @@ public class VehicleTests
     [Fact]
     public void Should_Update_Battery()
     {
-        var services = TestConfigurator.AddTestConfiguration().BuildServiceProvider();
-        services.UseTestConfiguration();
         var vehicle = CreateVehicleSession();
 
         vehicle.ApplyBattery(87, 11.4f);

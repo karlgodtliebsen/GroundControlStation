@@ -1,12 +1,15 @@
 ﻿using Domain.Library.Configuration;
 
 using DroneGcs.Core.Configuration;
+using DroneGcs.Transport;
 using DroneGcs.Transport.Configuration;
 
 using DroneGs.MavLink.Configuration;
 
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Options;
 
 
 namespace DroneGcs.Test.Configuration;
@@ -42,10 +45,41 @@ public static class TestConfigurator
             .AddDomainServices(configuration)
             .AddMavLinkTransportServices(configuration)
             .AddMavLinkServices(configuration);
-
         return services;
     }
 
+    public static IServiceCollection AddDefaultTestLogging(this IServiceCollection services, IConfiguration configuration, ITestOutputHelper? output)
+    {
+        services.AddLogging(loggingBuilder =>
+        {
+            loggingBuilder.ClearProviders();
+            loggingBuilder.AddConfiguration(configuration.GetSection("Logging"));
+            loggingBuilder.AddConsole();
+            loggingBuilder.AddDebug();
+            if (output is not null)
+            {
+                services.AddSingleton<ILoggerProvider>(new XUnitConsoleMsLoggerProvider(output));
+            }
+        });
+        return services;
+    }
+
+    public static IServiceCollection AddDefaultTestLogging(this IServiceCollection services, ITestOutputHelper? output)
+    {
+        services.AddLogging(loggingBuilder =>
+        {
+            loggingBuilder.ClearProviders();
+            loggingBuilder.AddConsole();
+            loggingBuilder.AddDebug();
+            if (output is not null)
+            {
+                services.AddSingleton<ILoggerProvider>(new XUnitConsoleMsLoggerProvider(output));
+            }
+        });
+        return services;
+    }
+
+    private static readonly Random Rnd = new(1024);
 
     /// <summary>
     /// Configures test services and dependencies using the specified <see cref="IServiceProvider"/>.
@@ -54,6 +88,17 @@ public static class TestConfigurator
     /// <returns>The updated service provider.</returns>
     public static IServiceProvider UseTestConfiguration(this IServiceProvider services)
     {
+        var endPoint = services.GetRequiredService<IOptions<TransportEndpoint>>();
+        //endPoint.Value.LocalPort =  Rnd.Next(1024, 655
+        //endPoint.Value.RemotePort = endPoint.Value.LocalPort + 1; 
+
+        var logger = services.GetRequiredService<ILogger<ServiceProvider>>();
+        //    logger.LogInformation("Test configuration initialized. Endpoint: {Endpoint}", endPoint.Value);
+
+        logger.LogInformation($"Test configuration initialized. UDP local:  {endPoint.Value.LocalHost}:{endPoint.Value.LocalPort}");
+        logger.LogInformation($"Test configuration initialized. UDP remote: {endPoint.Value.RemoteHost}:{endPoint.Value.RemotePort}");
+
+
         services
             .UseMavLinkServices()
             .UseDomainServices()

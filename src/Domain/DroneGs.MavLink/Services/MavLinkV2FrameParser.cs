@@ -73,9 +73,7 @@ public sealed class MavLinkV2FrameParser : IMavLinkFrameParser
             return false;
         }
 
-        var rawBytes = buffer
-            .Take(frameLength)
-            .ToArray();
+        var rawBytes = buffer.Take(frameLength).ToArray();
 
         buffer.RemoveRange(0, frameLength);
 
@@ -83,10 +81,7 @@ public sealed class MavLinkV2FrameParser : IMavLinkFrameParser
         var systemId = rawBytes[5];
         var componentId = rawBytes[6];
 
-        var messageId =
-            rawBytes[7]
-            | ((uint)rawBytes[8] << 8)
-            | ((uint)rawBytes[9] << 16);
+        var messageId = rawBytes[7] | ((uint)rawBytes[8] << 8) | ((uint)rawBytes[9] << 16);
 
         if (!crcExtraProvider.TryGetCrcExtra(messageId, out var crcExtra))
         {
@@ -98,13 +93,9 @@ public sealed class MavLinkV2FrameParser : IMavLinkFrameParser
 
         var receivedCrcOffset = HeaderLength + payloadLength;
 
-        var receivedCrc =
-            (ushort)(rawBytes[receivedCrcOffset]
-                     | (rawBytes[receivedCrcOffset + 1] << 8));
+        var receivedCrc = (ushort)(rawBytes[receivedCrcOffset] | (rawBytes[receivedCrcOffset + 1] << 8));
 
-        var calculatedCrc = MavLinkCrc.Calculate(
-            rawBytes.AsSpan(1, HeaderLength - 1 + payloadLength),
-            crcExtra);
+        var calculatedCrc = MavLinkCrc.Calculate(rawBytes.AsSpan(1, HeaderLength - 1 + payloadLength), crcExtra);
 
         if (receivedCrc != calculatedCrc)
         {
@@ -112,9 +103,7 @@ public sealed class MavLinkV2FrameParser : IMavLinkFrameParser
             return true;
         }
 
-        var payload = rawBytes
-            .AsMemory(HeaderLength, payloadLength)
-            .ToArray();
+        var payload = rawBytes.AsMemory(HeaderLength, payloadLength).ToArray();
 
         frame = new MavLinkFrame(
             systemId,

@@ -1,6 +1,6 @@
 ﻿using DroneGcs.Core.Models;
 
-namespace DroneGcs.Test;
+namespace DroneGcs.Simulator;
 
 /// <summary>
 /// Represents the state of a simulated vehicle.

@@ -1,7 +1,7 @@
 ﻿using DroneGcs.Core.Models;
 using DroneGcs.Core.Services;
+using DroneGcs.Simulator;
 using DroneGcs.Test.Configuration;
-
 using Microsoft.Extensions.DependencyInjection;
 
 namespace DroneGcs.Test;
@@ -12,6 +12,7 @@ namespace DroneGcs.Test;
 public class DomainVehiclesTests
 {
     private readonly ITestOutputHelper output;
+    private readonly IServiceProvider serviceProvider;
 
     /// <summary>
     /// Initializes a new instance of the <see cref="DomainVehiclesTests"/> class.
@@ -20,6 +21,12 @@ public class DomainVehiclesTests
     public DomainVehiclesTests(ITestOutputHelper output)
     {
         this.output = output;
+        var services = TestConfigurator
+            .AddTestConfiguration()
+            .AddDefaultTestLogging(output);
+
+        serviceProvider = services.BuildServiceProvider();
+        serviceProvider.UseTestConfiguration();
     }
 
     /// <summary>
@@ -28,15 +35,9 @@ public class DomainVehiclesTests
     [Fact]
     public async Task Should_Return_All_Simulated_VehiclesAsync()
     {
-        var services = TestConfigurator
-            .AddTestConfiguration()
-            .BuildServiceProvider();
-
-        services.UseTestConfiguration();
-
-        var registry = services.GetRequiredService<IVehicleRegistry>();
-        // var vehicleService = services.GetRequiredService<IVehicleService>();
-        await using var vehicleService = services.GetRequiredService<IVehicleService>();
+        var registry = serviceProvider.GetRequiredService<IVehicleRegistry>();
+        // var vehicleService = serviceProvider.GetRequiredService<IVehicleService>();
+        await using var vehicleService = serviceProvider.GetRequiredService<IVehicleService>();
 
         new SimulatedVehicleState
         {

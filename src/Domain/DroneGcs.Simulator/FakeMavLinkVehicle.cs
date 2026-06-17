@@ -1,7 +1,7 @@
 ﻿using System.Net;
 using System.Net.Sockets;
 
-namespace DroneGcs.Test;
+namespace DroneGcs.Simulator;
 
 /// <summary>
 /// A simple MAVLink vehicle simulator that sends fake MAVLink messages over UDP. 
@@ -86,10 +86,7 @@ public sealed class FakeMavLinkVehicle : IAsyncDisposable
         {
             await cancellationTokenSource.CancelAsync();
 
-            if (workerTask != null)
-            {
-                await workerTask;
-            }
+            if (workerTask != null) await workerTask;
 
             cancellationTokenSource.Dispose();
         }

@@ -1,8 +1,8 @@
-﻿using Domain.Library.EventHub;
-using Domain.Library.Factory.Domain.Abstractions;
+﻿using Domain.Library.Factory.Domain.Abstractions;
 
 using DroneGcs.Core.Commands;
 using DroneGcs.Core.Services;
+using DroneGcs.Simulator;
 using DroneGcs.Test.Configuration;
 using DroneGcs.Transport;
 
@@ -30,11 +30,11 @@ public class ConfigurationTests
     public ConfigurationTests(ITestOutputHelper output)
     {
         this.output = output;
-        var logger = NSubstitute.Substitute.For<ILogger<EventHub>>();
 
         var services = TestConfigurator
-            .AddTestConfiguration();
-        services.AddSingleton<ILogger<EventHub>>(logger);
+            .AddTestConfiguration()
+            .AddDefaultTestLogging(output);
+
         serviceProvider = services.BuildServiceProvider();
         serviceProvider.UseTestConfiguration();
     }
@@ -43,6 +43,7 @@ public class ConfigurationTests
     [Fact]
     public async Task TestConfigurationSetupAsync()
     {
+        var logger = serviceProvider.GetRequiredService<ILogger<ConfigurationTests>>();
         var parser = serviceProvider.GetRequiredService<IMavLinkFrameParser>();
         var transport = serviceProvider.GetRequiredService<IMavLinkTransport>();
         var mavLinkClient = serviceProvider.GetRequiredService<IMavLinkClient>();
@@ -62,5 +63,7 @@ public class ConfigurationTests
         var domainFactory = serviceProvider.GetRequiredService<IDomainFactory>();
 
         await using var simulator = new FakeMavLinkVehicle2(frameParser, crcExtraProvider, "127.0.0.1", 14550, 14551, TimeSpan.FromMilliseconds(100));
+
+        logger.LogInformation("Running TestConfigurationSetupAsync");
     }
 }

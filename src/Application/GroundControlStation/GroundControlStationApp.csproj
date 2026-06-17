@@ -43,7 +43,6 @@
 		<PackageReference Include="Microsoft.Extensions.Logging.Debug" />
 		<PackageReference Include="Microsoft.Extensions.Configuration" />
 		<PackageReference Include="Microsoft.Extensions.Configuration.Abstractions" />
-		<PackageReference Include="Microsoft.Maui.Controls" />
 		<PackageReference Include="UraniumUI.Blurs" />
 		<PackageReference Include="UraniumUI.Dialogs.CommunityToolkit" />
 		<PackageReference Include="UraniumUI.Dialogs.Mopups" />

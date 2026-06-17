@@ -10,4 +10,9 @@
     <Folder Include="Configuration\" />
   </ItemGroup>
 
+  <ItemGroup>
+    <ProjectReference Include="..\DroneGcs.Core\DroneGcs.Core.csproj" />
+    <ProjectReference Include="..\DroneGs.MavLink\DroneGs.MavLink.csproj" />
+  </ItemGroup>
+
 </Project>

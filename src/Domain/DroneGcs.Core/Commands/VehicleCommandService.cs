@@ -7,6 +7,8 @@ using DroneGs.MavLink.Commands;
 using DroneGs.MavLink.Encoding;
 using DroneGs.MavLink.Services;
 
+using Microsoft.Extensions.Logging;
+
 namespace DroneGcs.Core.Commands;
 
 /// <summary>
@@ -17,19 +19,25 @@ public sealed class VehicleCommandService(
     IMavLinkConnection connection,
     IMavLinkCommandEncoder encoder,
     ICommandAckTracker commandAckTracker,
-    IDateTimeProvider dateTimeProvider)
+    IDateTimeProvider dateTimeProvider,
+    IVehicleCommandPolicy commandPolicy,
+    ILogger<VehicleCommandService> logger)
     : IVehicleCommandService
 {
     private static readonly TimeSpan CommandAckTimeout = TimeSpan.FromSeconds(5);
 
+    private VehicleCommandResponse? ValidateCanSetMode(VehicleId vehicleId, VehicleMode mode)
+    {
+        var vehicle = registry.GetRequired(vehicleId);
+        var validation = commandPolicy.ValidateSetMode(vehicle.State, mode);
+        return validation;
+    }
 
     private VehicleCommandResponse? ValidateCanCommand(VehicleId vehicleId)
     {
         var vehicle = registry.GetRequired(vehicleId);
-
-        return vehicle.State.ConnectionState != VehicleConnectionState.Online
-            ? new VehicleCommandResponse(vehicleId, VehicleCommandResult.Denied, dateTimeProvider.UtcNow)
-            : null;
+        var validation = commandPolicy.ValidateArm(vehicle.State);
+        return validation;
     }
 
     /// <inheritdoc />
@@ -37,7 +45,7 @@ public sealed class VehicleCommandService(
     {
         var validation = ValidateCanCommand(vehicleId);
 
-        return validation is not null ? validation : await SendArmDisarmAsync(vehicleId, true, cancellationToken);
+        return validation ?? await SendArmDisarmAsync(vehicleId, true, cancellationToken);
     }
 
     /// <inheritdoc />
@@ -45,13 +53,20 @@ public sealed class VehicleCommandService(
     {
         var validation = ValidateCanCommand(vehicleId);
 
-        return validation is not null ? validation : await SendArmDisarmAsync(vehicleId, false, cancellationToken);
+        return validation ?? await SendArmDisarmAsync(vehicleId, false, cancellationToken);
     }
 
     /// <inheritdoc />
     public async Task<VehicleCommandResponse> SetModeAsync(VehicleId vehicleId, VehicleMode mode, CancellationToken cancellationToken)
     {
         var validation = ValidateCanCommand(vehicleId);
+
+        if (validation is not null)
+        {
+            return validation;
+        }
+
+        validation = ValidateCanSetMode(vehicleId, mode);
 
         if (validation is not null)
         {

@@ -1,37 +1,38 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
 
-  <PropertyGroup>
-    <TargetFramework>net10.0</TargetFramework>
-    <ImplicitUsings>enable</ImplicitUsings>
-    <Nullable>enable</Nullable>
-    <IsPackable>false</IsPackable>
-  </PropertyGroup>
+    <PropertyGroup>
+        <TargetFramework>net10.0</TargetFramework>
+        <ImplicitUsings>enable</ImplicitUsings>
+        <Nullable>enable</Nullable>
+        <IsPackable>false</IsPackable>
+    </PropertyGroup>
 
-  <ItemGroup>
-    <PackageReference Include="coverlet.collector" />
-    <PackageReference Include="Microsoft.NET.Test.Sdk" />
-    <PackageReference Include="xunit.v3" />
-    <PackageReference Include="xunit.runner.visualstudio" />
-    <PackageReference Include="Microsoft.Extensions.Configuration" />
-    <PackageReference Include="Microsoft.Extensions.Configuration.Abstractions" />
-    <PackageReference Include="Microsoft.Extensions.DependencyInjection" />
-    <PackageReference Include="Microsoft.Extensions.DependencyInjection.Abstractions" />
+    <ItemGroup>
+        <PackageReference Include="coverlet.collector" />
+        <PackageReference Include="Microsoft.NET.Test.Sdk" />
+        <PackageReference Include="xunit.v3" />
+        <PackageReference Include="xunit.runner.visualstudio" />
+        <PackageReference Include="Microsoft.Extensions.Configuration" />
+        <PackageReference Include="Microsoft.Extensions.Configuration.Abstractions" />
+        <PackageReference Include="Microsoft.Extensions.DependencyInjection" />
+        <PackageReference Include="Microsoft.Extensions.DependencyInjection.Abstractions" />
 
-      <PackageReference Include="FluentAssertions" />
-      <PackageReference Include="NSubstitute" />
+        <PackageReference Include="FluentAssertions" />
+        <PackageReference Include="NSubstitute" />
+        <PackageReference Include="Meziantou.Extensions.Logging.Xunit.v3" />
 
+    </ItemGroup>
 
-  </ItemGroup>
+    <ItemGroup>
+        <Using Include="Xunit" />
+    </ItemGroup>
 
-  <ItemGroup>
-    <Using Include="Xunit" />
-  </ItemGroup>
-
-  <ItemGroup>
-    <ProjectReference Include="..\..\Domain\DroneGcs.Core\DroneGcs.Core.csproj" />
-    <ProjectReference Include="..\..\Domain\DroneGcs.Transport\DroneGcs.Transport.csproj" />
-    <ProjectReference Include="..\..\Domain\DroneGs.MavLink\DroneGs.MavLink.csproj" />
-    <ProjectReference Include="..\..\Library\Domain.Library\Domain.Library.csproj" />
-  </ItemGroup>
+    <ItemGroup>
+        <ProjectReference Include="..\..\Domain\DroneGcs.Core\DroneGcs.Core.csproj" />
+        <ProjectReference Include="..\..\Domain\DroneGcs.Simulator\DroneGcs.Simulator.csproj" />
+        <ProjectReference Include="..\..\Domain\DroneGcs.Transport\DroneGcs.Transport.csproj" />
+        <ProjectReference Include="..\..\Domain\DroneGs.MavLink\DroneGs.MavLink.csproj" />
+        <ProjectReference Include="..\..\Library\Domain.Library\Domain.Library.csproj" />
+    </ItemGroup>
 
 </Project>

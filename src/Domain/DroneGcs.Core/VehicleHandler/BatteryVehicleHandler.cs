@@ -3,20 +3,21 @@ using DroneGcs.Core.Services;
 
 using DroneGs.MavLink.Messages;
 
+using Microsoft.Extensions.Logging;
+
 namespace DroneGcs.Core.VehicleHandler;
 
 /// <inheritdoc />
-public sealed record BatteryVehicleHandler(IVehicleRegistry vehicleRegistry) : IBatteryVehicleHandler
+public sealed record BatteryVehicleHandler(IVehicleRegistry vehicleRegistry, ILogger<BatteryVehicleHandler> logger) : IBatteryVehicleHandler
 {
     /// <inheritdoc />
     public void Handle(SysStatusMessage message)
     {
         var vehicleId = new VehicleId(message.SystemId, message.ComponentId);
 
+        logger.LogDebug("Handling battery status message from vehicle {VehicleId}", vehicleId);
         var vehicle = vehicleRegistry.GetRequired(vehicleId);
 
-        vehicle.ApplyBattery(
-            message.BatteryRemaining,
-            message.BatteryVoltage);
+        vehicle.ApplyBattery(message.BatteryRemaining, message.BatteryVoltage);
     }
 }

@@ -9,7 +9,7 @@ using DroneGs.MavLink.Commands;
 using DroneGs.MavLink.Messages;
 using DroneGs.MavLink.Services;
 
-namespace DroneGcs.Test;
+namespace DroneGcs.Simulator;
 
 /// <summary>
 /// A simple MAVLink vehicle simulator that sends fake MAVLink messages over UDP.
@@ -89,7 +89,6 @@ public sealed class FakeMavLinkVehicle2 : IAsyncDisposable
 
         workerTask = Task.Run(() => SendLoopAsync(cancellationTokenSource.Token), CancellationToken.None);
         receiveTask = Task.Run(() => ReceiveCommandLoopAsync(cancellationTokenSource.Token), CancellationToken.None);
-
         return Task.CompletedTask;
     }
 

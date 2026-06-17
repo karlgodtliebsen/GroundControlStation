@@ -21,7 +21,7 @@ public static class MavLinkTransportConfigurator
         services.TryAddSingleton<IMavLinkTransport, UdpMavLinkTransport>();
 
         //TODO: must be based on  configuration data
-        services.AddSingleton(Options.Create(new TransportEndpoint("udp", 14551, "127.0.0.1", 14550)));
+        services.AddSingleton(Options.Create(new TransportEndpoint()));
 
         return services;
     }
