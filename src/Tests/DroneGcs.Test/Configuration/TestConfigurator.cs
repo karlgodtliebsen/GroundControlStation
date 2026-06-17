@@ -1,6 +1,7 @@
 ﻿using Domain.Library.Configuration;
 
 using DroneGcs.Core.Configuration;
+using DroneGcs.Simulator.SmokeTests;
 using DroneGcs.Transport;
 using DroneGcs.Transport.Configuration;
 
@@ -8,6 +9,7 @@ using DroneGs.MavLink.Configuration;
 
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.DependencyInjection.Extensions;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 
@@ -45,6 +47,9 @@ public static class TestConfigurator
             .AddDomainServices(configuration)
             .AddMavLinkTransportServices(configuration)
             .AddMavLinkServices(configuration);
+
+        services.TryAddTransient<ITransportSmokeTestService, TransportSmokeTestService>();
+
         return services;
     }
 

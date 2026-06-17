@@ -1,6 +1,4 @@
-﻿using Domain.Library.EventHub;
-
-using DroneGcs.Core.Commands;
+﻿using DroneGcs.Core.Commands;
 using DroneGcs.Core.Models;
 using DroneGcs.Core.Services;
 using DroneGcs.Simulator;
@@ -10,7 +8,6 @@ using DroneGcs.Transport;
 using DroneGs.MavLink.Services;
 
 using Microsoft.Extensions.DependencyInjection;
-using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 
 namespace DroneGcs.Test;
@@ -30,13 +27,9 @@ public class DomainVehicleServiceTests
     public DomainVehicleServiceTests(ITestOutputHelper output)
     {
         this.output = output;
-        var logger = NSubstitute.Substitute.For<ILogger<EventHub>>();
-
         var services = TestConfigurator
             .AddTestConfiguration()
             .AddDefaultTestLogging(output);
-
-        services.AddSingleton<ILogger<EventHub>>(logger);
         serviceProvider = services.BuildServiceProvider();
         serviceProvider.UseTestConfiguration();
     }

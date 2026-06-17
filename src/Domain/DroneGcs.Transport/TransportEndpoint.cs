@@ -13,13 +13,13 @@ public class TransportEndpoint
     /// <summary>
     /// The protocol used by the transport endpoint (e.g., "udp", "tcp").
     /// </summary>
-    public string Protocol { get; }
+    public string Protocol { get; set; }
 
 
     /// <summary>
     /// The host address of the remote endpoint.
     /// </summary>
-    public string RemoteHost { get; }
+    public string RemoteHost { get; set; }
 
     /// <summary>
     /// The port number of the local endpoint.
