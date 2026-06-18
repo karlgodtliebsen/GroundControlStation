@@ -1,10 +1,14 @@
-﻿using DroneGcs.Simulator;
+﻿using Domain.Library.EventHub.Abstractions;
+
+using DroneGcs.Simulator;
 using DroneGcs.Test.Configuration;
 
 using DroneGs.MavLink.Client;
 using DroneGs.MavLink.Decoding;
 using DroneGs.MavLink.Messages;
 using DroneGs.MavLink.Services;
+
+using FluentAssertions;
 
 using Microsoft.Extensions.DependencyInjection;
 
@@ -37,7 +41,7 @@ public sealed class MavLinkMessageDecoderTests
     {
         await using var client = serviceProvider.GetRequiredService<IMavLinkClient>();
         await using var connection = serviceProvider.GetRequiredService<IMavLinkConnection>();
-
+        var eventHub = serviceProvider.GetRequiredService<IEventHub>();
         await connection.StartAsync(TestContext.Current.CancellationToken);
 
         await using var simulator = new FakeMavLinkVehicle2(
@@ -46,13 +50,22 @@ public sealed class MavLinkMessageDecoderTests
 
         await simulator.StartAsync(TestContext.Current.CancellationToken);
 
-        var message =
-            await connection
-                .ReadMessagesAsync(TestContext.Current.CancellationToken)
-                .OfType<HeartbeatMessage>()
-                .FirstAsync(TestContext.Current.CancellationToken)
-                .AsTask()
-                .WaitAsync(TimeSpan.FromSeconds(5), TestContext.Current.CancellationToken);
+        TaskCompletionSource ts = new(TaskCreationOptions.RunContinuationsAsynchronously);
+        HeartbeatMessage? messageResult = null;
+        using var subscription = eventHub.SubscribeAsync<MavLinkMessage>(MavLinkEventTopics.ReceivedMessage, (m, cts) =>
+        {
+            if (m is HeartbeatMessage heartbeatMessage)
+            {
+                messageResult = heartbeatMessage;
+                ts.TrySetResult();
+            }
+
+            return Task.CompletedTask;
+        });
+
+        await ts.Task.WaitAsync(TimeSpan.FromSeconds(5), TestContext.Current.CancellationToken);
+        messageResult.Should().NotBeNull();
+        var message = messageResult!;
 
         Assert.Equal(1, message.SystemId);
         Assert.Equal(1, message.ComponentId);

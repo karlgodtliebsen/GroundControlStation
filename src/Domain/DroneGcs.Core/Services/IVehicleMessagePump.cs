@@ -3,7 +3,7 @@
 /// <summary>
 /// Represents a message pump that reads messages from a vehicle connection and handles them.
 /// </summary>
-public interface IVehicleMessagePump
+public interface IVehicleMessagePump : IAsyncDisposable
 {
     /// <summary>
     /// Starts pumping messages from the vehicle connection.

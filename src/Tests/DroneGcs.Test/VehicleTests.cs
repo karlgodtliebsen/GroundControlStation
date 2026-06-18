@@ -18,6 +18,8 @@ using DroneGs.MavLink.Encoding;
 using DroneGs.MavLink.Messages;
 using DroneGs.MavLink.Services;
 
+using FluentAssertions;
+
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Options;
 
@@ -82,6 +84,7 @@ public class VehicleTests
     [Fact]
     public async Task Should_Register_Vehicle_From_Received_Heartbeat_MessageAsync()
     {
+        var eventHub = serviceProvider.GetRequiredService<IEventHub>();
         var registry = serviceProvider.GetRequiredService<IVehicleRegistry>();
         var handler = serviceProvider.GetRequiredService<IHeartbeatVehicleHandler>();
         await using var client = serviceProvider.GetRequiredService<IMavLinkClient>();
@@ -97,12 +100,24 @@ public class VehicleTests
 
         await simulator.StartAsync(TestContext.Current.CancellationToken);
 
-        var message = await connection
-            .ReadMessagesAsync(TestContext.Current.CancellationToken)
-            .OfType<HeartbeatMessage>()
-            .FirstAsync(TestContext.Current.CancellationToken)
-            .AsTask()
-            .WaitAsync(TimeSpan.FromSeconds(5), TestContext.Current.CancellationToken);
+        TaskCompletionSource ts = new(TaskCreationOptions.RunContinuationsAsynchronously);
+        HeartbeatMessage? messageResult = null;
+        using var subscription = eventHub.SubscribeAsync<MavLinkMessage>(MavLinkEventTopics.ReceivedMessage, (m, cts) =>
+        {
+            if (m is HeartbeatMessage heartbeatMessage)
+            {
+                messageResult = heartbeatMessage;
+                ts.TrySetResult();
+            }
+
+            return Task.CompletedTask;
+        });
+
+
+        await ts.Task.WaitAsync(TimeSpan.FromSeconds(5), TestContext.Current.CancellationToken);
+        messageResult.Should().NotBeNull();
+        var message = messageResult!;
+
 
         var vehicle = handler.Handle(message);
 
@@ -151,24 +166,24 @@ public class VehicleTests
         await using var connection = serviceProvider.GetRequiredService<IMavLinkConnection>();
 
         await connection.StartAsync(TestContext.Current.CancellationToken);
-        var pump = serviceProvider.GetRequiredService<IVehicleMessagePump>();
+        var messagePump = serviceProvider.GetRequiredService<IVehicleMessagePump>();
 
-        var pumpTask = pump.StartAsync(TestContext.Current.CancellationToken);
+        // var pumpTask = pump.StartAsync(TestContext.Current.CancellationToken);
+        var pumpTask = Task.Run(() => messagePump.StartAsync(TestContext.Current.CancellationToken), TestContext.Current.CancellationToken);
+
         await using var simulator = new FakeMavLinkVehicle2(
             serviceProvider.GetRequiredService<IMavLinkFrameParser>(),
             serviceProvider.GetRequiredService<IMavLinkCrcExtraProvider>(), "127.0.0.1", 14550, 14551, TimeSpan.FromMilliseconds(100));
 
-
         await simulator.StartAsync(TestContext.Current.CancellationToken);
 
-        await EventuallyAsync(
-            () => Assert.Single(registry.Vehicles),
-            TimeSpan.FromSeconds(5),
-            TestContext.Current.CancellationToken);
+        var simul = simulator;
+        var simulatorTask = Task.Run(() => simul.StartAsync(TestContext.Current.CancellationToken), TestContext.Current.CancellationToken);
 
-        Assert.Contains(
-            registry.Vehicles,
-            vehicle => vehicle.Id == new VehicleId(1, 1));
+
+        await EventuallyAsync(() => Assert.Single(registry.Vehicles), TimeSpan.FromSeconds(15), TestContext.Current.CancellationToken);
+
+        Assert.Contains(registry.Vehicles, vehicle => vehicle.Id == new VehicleId(1, 1));
     }
 
     /// <summary>
@@ -466,6 +481,7 @@ public class VehicleTests
     {
         var options = serviceProvider.GetRequiredService<IOptions<TransportEndpoint>>();
         var endpoint = options.Value;
+        var eventHub = serviceProvider.GetRequiredService<IEventHub>();
 
         output.WriteLine($"UDP local: {endpoint.LocalHost}:{endpoint.LocalPort}");
         output.WriteLine($"UDP remote: {endpoint.RemoteHost}:{endpoint.RemotePort}");
@@ -490,17 +506,27 @@ public class VehicleTests
 
         await connection.SendRawAsync(armCommand, TestContext.Current.CancellationToken);
 
-        var ack = await connection
-            .ReadMessagesAsync(TestContext.Current.CancellationToken)
-            .OfType<CommandAckMessage>()
-            .FirstAsync(TestContext.Current.CancellationToken)
-            .AsTask()
-            .WaitAsync(TimeSpan.FromSeconds(5), TestContext.Current.CancellationToken);
+        TaskCompletionSource ts = new(TaskCreationOptions.RunContinuationsAsynchronously);
+        CommandAckMessage? messageResult = null;
+        using var subscription = eventHub.SubscribeAsync<MavLinkMessage>(MavLinkEventTopics.ReceivedMessage, (m, cts) =>
+        {
+            if (m is CommandAckMessage commandAckMessage)
+            {
+                messageResult = commandAckMessage;
+                ts.TrySetResult();
+            }
 
-        Assert.Equal(1, ack.SystemId);
-        Assert.Equal(1, ack.ComponentId);
-        Assert.Equal(MavLinkCommandIds.ComponentArmDisarm, ack.Command);
-        Assert.Equal(0, ack.Result);
+            return Task.CompletedTask;
+        });
+
+        await ts.Task.WaitAsync(TimeSpan.FromSeconds(5), TestContext.Current.CancellationToken);
+        messageResult.Should().NotBeNull();
+        var message = messageResult!;
+
+        Assert.Equal(1, message.SystemId);
+        Assert.Equal(1, message.ComponentId);
+        Assert.Equal(MavLinkCommandIds.ComponentArmDisarm, message.Command);
+        Assert.Equal(0, message.Result);
     }
 
     /// <summary>

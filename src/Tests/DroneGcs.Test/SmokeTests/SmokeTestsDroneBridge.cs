@@ -1,11 +1,16 @@
 ﻿using System.Net.Sockets;
 
+using Domain.Library.EventHub.Abstractions;
+
 using DroneGcs.Simulator.SmokeTests;
 using DroneGcs.Test.Configuration;
 using DroneGcs.Transport;
 
+using DroneGs.MavLink;
 using DroneGs.MavLink.Messages;
 using DroneGs.MavLink.Services;
+
+using FluentAssertions;
 
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
@@ -32,29 +37,6 @@ public class SmokeTestsDroneBridge
         var services = TestConfigurator
             .AddTestConfiguration()
             .AddDefaultTestLogging(output);
-
-
-        //services.Configure<TransportEndpoint>(options =>
-        //{
-        //    options.Protocol = "udp";
-        //    options.LocalHost = "0.0.0.0";
-        //    options.LocalPort = 14550;
-
-        //    options.RemoteHost = "192.168.1.248";
-        //    options.RemotePort = 14551;
-        //});
-
-
-        //services.Configure<TransportEndpoint>(options =>
-        //{
-        //    options.Protocol = "udp";
-        //    options.LocalHost = "127.0.0.1";
-        //    options.LocalPort = 14550;
-
-        //    options.RemoteHost = "127.0.0.1";
-        //    options.RemotePort = 14551;
-        //});
-
 
         serviceProvider = services.BuildServiceProvider();
         serviceProvider.UseTestConfiguration();
@@ -131,19 +113,26 @@ public class SmokeTestsDroneBridge
     [Fact]
     public async Task Should_Receive_MavLink_Heartbeat_Through_DroneBridge()
     {
+        var eventHub = serviceProvider.GetRequiredService<IEventHub>();
         await using var connection = serviceProvider.GetRequiredService<IMavLinkConnection>();
 
         await connection.StartAsync(TestContext.Current.CancellationToken);
+        TaskCompletionSource ts = new(TaskCreationOptions.RunContinuationsAsynchronously);
+        MavLinkFrame? messageResult = null;
+        using var subscription = eventHub.SubscribeAsync<MavLinkFrame>(MavLinkEventTopics.ReceivedFrame, (frame, cts) =>
+        {
+            if (frame.MessageId == MessageIds.Heartbeat)
+            {
+                messageResult = frame;
+                ts.TrySetResult();
+            }
 
-        var frame = await connection
-            .ReadFramesAsync(TestContext.Current.CancellationToken)
-            .FirstAsync(
-                frame => frame.MessageId == MessageIds.Heartbeat,
-                TestContext.Current.CancellationToken)
-            .AsTask()
-            .WaitAsync(TimeSpan.FromSeconds(15),
-                TestContext.Current.CancellationToken);
+            return Task.CompletedTask;
+        });
 
+        await ts.Task.WaitAsync(TimeSpan.FromSeconds(5), TestContext.Current.CancellationToken);
+        messageResult.Should().NotBeNull();
+        var frame = messageResult!;
         Assert.Equal(MessageIds.Heartbeat, frame.MessageId);
         Assert.True(frame.SystemId > 0);
     }

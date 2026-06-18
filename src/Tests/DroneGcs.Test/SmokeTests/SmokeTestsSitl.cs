@@ -1,13 +1,18 @@
 ﻿using System.Net.Sockets;
 
+using Domain.Library.EventHub.Abstractions;
+
 using DroneGcs.Core.Models;
 using DroneGcs.Core.Services;
 using DroneGcs.Simulator.SmokeTests;
 using DroneGcs.Test.Configuration;
 using DroneGcs.Transport;
 
+using DroneGs.MavLink;
 using DroneGs.MavLink.Messages;
 using DroneGs.MavLink.Services;
+
+using FluentAssertions;
 
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
@@ -34,29 +39,6 @@ public class SmokeTestsSitl
         var services = TestConfigurator
             .AddTestConfiguration()
             .AddDefaultTestLogging(output);
-
-
-        //services.Configure<TransportEndpoint>(options =>
-        //{
-        //    options.Protocol = "udp";
-        //    options.LocalHost = "0.0.0.0";
-        //    options.LocalPort = 14550;
-
-        //    options.RemoteHost = "192.168.1.248";
-        //    options.RemotePort = 14551;
-        //});
-
-
-        //services.Configure<TransportEndpoint>(options =>
-        //{
-        //    options.Protocol = "udp";
-        //    options.LocalHost = "127.0.0.1";
-        //    options.LocalPort = 14550;
-
-        //    options.RemoteHost = "127.0.0.1";
-        //    options.RemotePort = 14551;
-        //});
-
 
         serviceProvider = services.BuildServiceProvider();
         serviceProvider.UseTestConfiguration();
@@ -122,17 +104,27 @@ public class SmokeTestsSitl
     public async Task Should_Receive_Heartbeat_From_SITL()
     {
         await using var connection = serviceProvider.GetRequiredService<IMavLinkConnection>();
+        var eventHub = serviceProvider.GetRequiredService<IEventHub>();
 
         await connection.StartAsync(TestContext.Current.CancellationToken);
 
-        var frame = await connection
-            .ReadFramesAsync(TestContext.Current.CancellationToken)
-            .FirstAsync(
-                frame => frame.MessageId == MessageIds.Heartbeat,
-                TestContext.Current.CancellationToken)
-            .AsTask()
-            .WaitAsync(TimeSpan.FromSeconds(15),
-                TestContext.Current.CancellationToken);
+        TaskCompletionSource ts = new(TaskCreationOptions.RunContinuationsAsynchronously);
+        MavLinkFrame? messageResult = null;
+        using var subscription = eventHub.SubscribeAsync<MavLinkFrame>(MavLinkEventTopics.ReceivedFrame, (frame, cts) =>
+        {
+            if (frame.MessageId == MessageIds.Heartbeat)
+            {
+                messageResult = frame;
+                ts.TrySetResult();
+            }
+
+            return Task.CompletedTask;
+        });
+
+        await ts.Task.WaitAsync(TimeSpan.FromSeconds(5), TestContext.Current.CancellationToken);
+        messageResult.Should().NotBeNull();
+        var frame = messageResult!;
+
 
         Assert.Equal(MessageIds.Heartbeat, frame.MessageId);
         Assert.True(frame.SystemId > 0);
@@ -147,16 +139,13 @@ public class SmokeTestsSitl
     {
         var logger = serviceProvider.GetRequiredService<ILogger<SmokeTestsSitl>>();
         await using var connection = serviceProvider.GetRequiredService<IMavLinkConnection>();
-
-        var messagePump = serviceProvider.GetRequiredService<IVehicleMessagePump>();
-
-        var vehicleService = serviceProvider.GetRequiredService<IVehicleService>();
+        await using var messagePump = serviceProvider.GetRequiredService<IVehicleMessagePump>();
+        await using var vehicleService = serviceProvider.GetRequiredService<IVehicleService>();
 
         await connection.StartAsync(TestContext.Current.CancellationToken);
+        var mp = messagePump;
 
-        _ = Task.Run(
-            () => messagePump.StartAsync(TestContext.Current.CancellationToken),
-            TestContext.Current.CancellationToken);
+        _ = Task.Run(() => mp.StartAsync(TestContext.Current.CancellationToken), TestContext.Current.CancellationToken);
 
         await EventuallyAsync(
             () =>

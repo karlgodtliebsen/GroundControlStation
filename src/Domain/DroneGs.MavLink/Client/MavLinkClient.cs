@@ -21,7 +21,7 @@ public sealed class MavLinkClient : IMavLinkClient
     /// <summary>
     /// Occurs when data is received from the MAVLink transport.
     /// </summary>
-    public event Func<MavLinkDataReceived, CancellationToken, ValueTask>? DataReceived;
+    public event Func<MavLinkDataReceived, CancellationToken, Task>? DataReceived;
 
     /// <summary>
     /// Gets a value indicating whether the MAVLink client is currently running and receiving data.

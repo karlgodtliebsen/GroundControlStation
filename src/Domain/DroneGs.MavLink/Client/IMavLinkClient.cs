@@ -10,7 +10,7 @@ public interface IMavLinkClient : IAsyncDisposable
     /// <summary>
     /// Occurs when data is received from the MAVLink transport.
     /// </summary>
-    event Func<MavLinkDataReceived, CancellationToken, ValueTask>? DataReceived;
+    event Func<MavLinkDataReceived, CancellationToken, Task>? DataReceived;
 
     /// <summary>
     /// Gets a value indicating whether the MAVLink client is currently running and receiving data.
