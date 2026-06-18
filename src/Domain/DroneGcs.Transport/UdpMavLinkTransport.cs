@@ -11,9 +11,10 @@ public sealed class UdpMavLinkTransport : IMavLinkTransport
 {
     private readonly ILogger<UdpMavLinkTransport> logger;
     private UdpClient? udpClient;
-    private readonly IPEndPoint remoteEndPoint;
+    private readonly IPEndPoint configuredRemoteEndPoint;
     private readonly TransportEndpoint endpoint;
     private volatile bool isConnected;
+    private IPEndPoint? lastRemoteEndPoint;
 
     /// <summary>
     /// 
@@ -45,7 +46,7 @@ public sealed class UdpMavLinkTransport : IMavLinkTransport
         }
 
         var remoteAddress = IPAddress.Parse(remoteHost);
-        remoteEndPoint = new IPEndPoint(remoteAddress, remotePort);
+        configuredRemoteEndPoint = new IPEndPoint(remoteAddress, remotePort);
     }
 
     /// <inheritdoc />
@@ -67,7 +68,7 @@ public sealed class UdpMavLinkTransport : IMavLinkTransport
             new IPEndPoint(localAddress, localPort));
 
         isConnected = true;
-        logger.LogDebug("UdpMavLinkTransport - UDP transport connected to {RemoteEndPoint}", remoteEndPoint);
+        logger.LogTrace("UdpMavLinkTransport - UDP transport connected to {RemoteEndPoint}", configuredRemoteEndPoint);
         return Task.CompletedTask;
     }
 
@@ -86,12 +87,14 @@ public sealed class UdpMavLinkTransport : IMavLinkTransport
 
         var result = await udpClient.ReceiveAsync(cancellationToken).ConfigureAwait(false);
 
+        lastRemoteEndPoint = result.RemoteEndPoint;
+
         var bytesToCopy = Math.Min(result.Buffer.Length, buffer.Length);
 
         result.Buffer.AsMemory(0, bytesToCopy).CopyTo(buffer);
 
         var remoteEndpoint = new MavLinkEndpoint(endpoint.Protocol, result.RemoteEndPoint.Address.ToString(), result.RemoteEndPoint.Port);
-        logger.LogDebug("UdpMavLinkTransport - Received {Bytes} bytes from {RemoteEndPoint}", bytesToCopy, remoteEndpoint);
+        logger.LogTrace("UdpMavLinkTransport - Received {Bytes} bytes from {RemoteEndPoint}", bytesToCopy, remoteEndpoint);
         return new TransportReceiveResult(bytesToCopy, remoteEndpoint);
     }
 
@@ -108,8 +111,11 @@ public sealed class UdpMavLinkTransport : IMavLinkTransport
             throw new InvalidOperationException("UDP Client is not initialized.");
         }
 
-        await udpClient.SendAsync(data, remoteEndPoint, cancellationToken).ConfigureAwait(false);
-        logger.LogDebug("UdpMavLinkTransport - Sent {Bytes} bytes to {RemoteEndPoint}", data.Length, remoteEndPoint);
+        var target = lastRemoteEndPoint ?? configuredRemoteEndPoint;
+
+        logger.LogTrace("UdpMavLinkTransport - UDP sending {Length} bytes to {RemoteAddress}:{RemotePort}", data.Length, target.Address, target.Port);
+
+        await udpClient.SendAsync(data, target, cancellationToken).ConfigureAwait(false);
     }
 
     /// <inheritdoc />
@@ -125,7 +131,7 @@ public sealed class UdpMavLinkTransport : IMavLinkTransport
             udpClient = null!;
         }
 
-        logger.LogDebug("UdpMavLinkTransport - UDP transport disconnected from {RemoteEndPoint}", remoteEndPoint);
+        logger.LogTrace("UdpMavLinkTransport - UDP transport disconnected from {RemoteEndPoint}", configuredRemoteEndPoint);
         return Task.CompletedTask;
     }
 
@@ -140,7 +146,7 @@ public sealed class UdpMavLinkTransport : IMavLinkTransport
             udpClient = null!;
         }
 
-        logger.LogDebug("UdpMavLinkTransport - UDP transport disposed");
+        logger.LogTrace("UdpMavLinkTransport - UDP transport disposed");
         GC.SuppressFinalize(this);
         return ValueTask.CompletedTask;
     }

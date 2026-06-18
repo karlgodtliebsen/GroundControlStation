@@ -71,7 +71,7 @@ public sealed class MavLinkClient : IMavLinkClient
         await transport.ConnectAsync(cancellationTokenSource.Token).ConfigureAwait(false);
 
         receiveTask = Task.Run(() => ReceiveLoopAsync(cancellationTokenSource.Token), CancellationToken.None);
-        logger.LogDebug("MAVLink client started.");
+        logger.LogTrace("MAVLink client started.");
     }
 
     private async Task ReceiveLoopAsync(CancellationToken cancellationToken)
@@ -89,7 +89,7 @@ public sealed class MavLinkClient : IMavLinkClient
                     continue;
                 }
 
-                logger.LogDebug("MavLinkClient - Received {BytesRead} bytes from MAVLink transport.", result.BytesRead);
+                logger.LogTrace("MavLinkClient - Received {BytesRead} bytes from MAVLink transport.", result.BytesRead);
                 var copy = new byte[result.BytesRead];
                 buffer.AsMemory(0, result.BytesRead).CopyTo(copy);
 
@@ -119,8 +119,7 @@ public sealed class MavLinkClient : IMavLinkClient
         finally
         {
             await transport.DisconnectAsync(CancellationToken.None).ConfigureAwait(false);
-            logger.LogDebug("MavLinkClient - MAVLink client stopped.");
-            //await transport.DisconnectAsync(cancellationToken).ConfigureAwait(false);
+            logger.LogTrace("MavLinkClient - MAVLink client stopped.");
         }
     }
 
@@ -140,7 +139,7 @@ public sealed class MavLinkClient : IMavLinkClient
         }
 
         await transport.WriteAsync(data, cancellationToken).ConfigureAwait(false);
-        logger.LogDebug("MavLinkClient - Sent {Bytes} bytes to MAVLink transport.", data.Length);
+        logger.LogTrace("MavLinkClient - Sent {Bytes} bytes to MAVLink transport.", data.Length);
     }
 
     /// <summary>
@@ -163,7 +162,7 @@ public sealed class MavLinkClient : IMavLinkClient
         cancellationTokenSource.Dispose();
         cancellationTokenSource = null;
         receiveTask = null;
-        logger.LogDebug("MavLinkClient - MAVLink client stopped.");
+        logger.LogTrace("MavLinkClient - MAVLink client stopped.");
     }
 
     /// <summary>
@@ -182,7 +181,7 @@ public sealed class MavLinkClient : IMavLinkClient
 
         disposed = true;
         GC.SuppressFinalize(this);
-        logger.LogDebug("MavLinkClient - MAVLink client disposed.");
+        logger.LogTrace("MavLinkClient - MAVLink client disposed.");
     }
 
     private void ThrowIfDisposed()

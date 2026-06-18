@@ -4,9 +4,9 @@ using DroneGcs.Core.Models;
 namespace DroneGcs.Core.Services;
 
 /// <summary>
-/// 
+/// Domain Service IVehicleService
 /// </summary>
-public interface IVehicleService : IAsyncDisposable
+public interface IVehicleService
 {
     /// <summary>
     /// 
@@ -19,7 +19,23 @@ public interface IVehicleService : IAsyncDisposable
     /// </summary>
     /// <param name="vehicleId"></param>
     /// <returns></returns>
-    VehicleState GetVehicle(VehicleId vehicleId);
+    VehicleState? GetVehicleState(VehicleId vehicleId);
+
+    /// <summary>
+    /// 
+    /// </summary>
+    /// <param name="vehicleId"></param>
+    /// <returns></returns>
+    VehicleSession? GetVehicle(VehicleId vehicleId);
+
+
+    /// <summary>
+    /// 
+    /// </summary>
+    /// <param name="vehicleId"></param>
+    /// <returns></returns>
+    IReadOnlyCollection<VehicleStatusText> GetVehicleNotifications(VehicleId vehicleId);
+
 
     /// <summary>
     /// 

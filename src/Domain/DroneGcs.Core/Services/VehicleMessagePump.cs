@@ -17,6 +17,7 @@ namespace DroneGcs.Core.Services;
 /// <param name="positionHandler">The handler for position messages.</param>
 /// <param name="attitudeHandler">The handler for attitude messages.</param>
 /// <param name="batteryHandler">The handler for battery status messages.</param>
+/// <param name="statusTextHandler"></param>
 /// <param name="commandAckTracker"></param>
 /// <param name="eventHub"></param>
 /// <param name="logger"></param>
@@ -25,6 +26,7 @@ public sealed class VehicleMessagePump(
     IPositionVehicleHandler positionHandler,
     IAttitudeVehicleHandler attitudeHandler,
     IBatteryVehicleHandler batteryHandler,
+    IStatusTextHandler statusTextHandler,
     ICommandAckTracker commandAckTracker,
     IEventHub eventHub,
     ILogger<VehicleMessagePump> logger)
@@ -36,10 +38,11 @@ public sealed class VehicleMessagePump(
     /// Starts pumping messages from the vehicle connection.
     /// </summary>
     /// <param name="cancellationToken">A token to monitor for cancellation requests.</param>
-    public async Task StartAsync(CancellationToken cancellationToken)
+    public Task StartAsync(CancellationToken cancellationToken)
     {
         logger.LogTrace("VehicleMessagePump - Starting Event Subscription.");
         subscription = eventHub.SubscribeAsync<MavLinkMessage>(MavLinkEventTopics.ReceivedMessage, HandleMessage);
+        return Task.CompletedTask;
     }
 
     private async Task HandleMessage(MavLinkMessage message, CancellationToken cancellationToken)
@@ -48,24 +51,33 @@ public sealed class VehicleMessagePump(
         switch (message)
         {
             case HeartbeatMessage heartbeat:
-                logger.LogInformation("VehicleMessagePump - Handling heartbeat from {SystemId}:{ComponentId}", heartbeat.SystemId, heartbeat.ComponentId);
                 heartbeatHandler.Handle(heartbeat);
+                await eventHub.PublishAsync<HeartbeatMessage>(MavLinkEventTopics.ReceivedMessage, heartbeat, cancellationToken);
                 break;
 
             case GlobalPositionIntMessage position:
                 positionHandler.Handle(position);
+                await eventHub.PublishAsync<GlobalPositionIntMessage>(MavLinkEventTopics.ReceivedMessage, position, cancellationToken);
                 break;
 
             case AttitudeMessage attitude:
                 attitudeHandler.Handle(attitude);
+                await eventHub.PublishAsync<AttitudeMessage>(MavLinkEventTopics.ReceivedMessage, attitude, cancellationToken);
                 break;
 
             case SysStatusMessage sysStatus:
                 batteryHandler.Handle(sysStatus);
+                await eventHub.PublishAsync<SysStatusMessage>(MavLinkEventTopics.ReceivedMessage, sysStatus, cancellationToken);
+                break;
+
+            case StatusTextMessage statusText:
+                statusTextHandler.Handle(statusText);
+                await eventHub.PublishAsync<StatusTextMessage>(MavLinkEventTopics.ReceivedMessage, statusText, cancellationToken);
                 break;
 
             case CommandAckMessage commandAck:
                 commandAckTracker.Handle(commandAck);
+                await eventHub.PublishAsync<CommandAckMessage>(MavLinkEventTopics.ReceivedMessage, commandAck, cancellationToken);
                 break;
         }
     }

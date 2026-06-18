@@ -8,7 +8,4 @@ namespace DroneGcs.Core.Commands;
 /// <param name="VehicleId">The ID of the vehicle.</param>
 /// <param name="Result">The result of the command.</param>
 /// <param name="CompletedAt">The timestamp when the command was completed.</param>
-public sealed record VehicleCommandResponse(
-    VehicleId VehicleId,
-    VehicleCommandResult Result,
-    DateTimeOffset CompletedAt);
+public sealed record VehicleCommandResponse(VehicleId VehicleId, VehicleCommandResult Result, DateTimeOffset CompletedAt);

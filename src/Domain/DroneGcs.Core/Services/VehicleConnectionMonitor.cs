@@ -13,13 +13,14 @@ namespace DroneGcs.Core.Services;
 public sealed class VehicleConnectionMonitor(IVehicleRegistry vehicleRegistry, IDateTimeProvider clock, IDomainEventHub eventHub) : IVehicleConnectionMonitor
 {
     private static readonly TimeSpan StaleAfter = TimeSpan.FromSeconds(2);
-    private static readonly TimeSpan OfflineAfter = TimeSpan.FromSeconds(5);
+    private static readonly TimeSpan DegradedAfter = TimeSpan.FromSeconds(5);
+    private static readonly TimeSpan OfflineAfter = TimeSpan.FromSeconds(10);
 
     /// <summary>
     /// Updates the connection states of all monitored vehicles.
     /// </summary>
     public void UpdateConnectionStates()
     {
-        vehicleRegistry.UpdateConnectionStates(clock.UtcNow, StaleAfter, OfflineAfter);
+        vehicleRegistry.UpdateConnectionStates(clock.UtcNow, StaleAfter, DegradedAfter, OfflineAfter);
     }
 }

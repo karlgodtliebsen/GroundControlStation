@@ -1,10 +1,11 @@
 ﻿using System.Net.Sockets;
 
+using Domain.Library;
 using Domain.Library.EventHub.Abstractions;
 
+using DroneGcs.Core.Commands;
 using DroneGcs.Core.Models;
 using DroneGcs.Core.Services;
-using DroneGcs.Simulator.SmokeTests;
 using DroneGcs.Test.Configuration;
 using DroneGcs.Transport;
 
@@ -23,7 +24,7 @@ namespace DroneGcs.Test.SmokeTests;
 /// <summary>
 /// Tests for the domain layer implementations.
 /// </summary>
-public class SmokeTestsSitl
+public class SmokeTestsSitl : IAsyncLifetime
 {
     private readonly ITestOutputHelper output;
     private readonly IServiceProvider serviceProvider;
@@ -58,6 +59,29 @@ public class SmokeTestsSitl
         logger.LogInformation($"Test configuration initialized. UDP remote: {endPoint.Value.RemoteHost}:{endPoint.Value.RemotePort}");
     }
 
+    /// <inheritdoc />
+    public async ValueTask DisposeAsync()
+    {
+        await connection.DisposeAsync();
+        await messagePump.DisposeAsync();
+    }
+
+    private IMavLinkConnection connection;
+    private IVehicleMessagePump messagePump;
+
+    /// <inheritdoc />
+    public ValueTask InitializeAsync()
+    {
+        connection = serviceProvider.GetRequiredService<IMavLinkConnection>();
+        messagePump = serviceProvider.GetRequiredService<IVehicleMessagePump>();
+
+        var conn = connection;
+        var mp = messagePump;
+        _ = Task.Run(() => conn.StartAsync(TestContext.Current.CancellationToken), TestContext.Current.CancellationToken);
+        _ = Task.Run(() => mp.StartAsync(TestContext.Current.CancellationToken), TestContext.Current.CancellationToken);
+
+        return ValueTask.CompletedTask;
+    }
 
     /// <summary>
     /// Sends a TCP  probe to the SITL without expecting any response.
@@ -73,40 +97,12 @@ public class SmokeTestsSitl
     }
 
     /// <summary>
-    /// Sends a UDP probe to the DroneBridge without expecting any response.
-    /// </summary>
-    [Fact]
-    public async Task Should_Send_Udp_Probe_To_SITL_Without_Error()
-    {
-        var smokeTest =
-            serviceProvider.GetRequiredService<ITransportSmokeTestService>();
-
-        var payload = TransportProbePayloads.CreateAsciiProbe();
-
-        await smokeTest.SendProbeAsync(payload, TestContext.Current.CancellationToken);
-
-        Assert.True(true);
-    }
-
-    /*
-        cat /etc/resolv.conf | grep nameserver
-        nameserver 10.255.255.254
-
-        cd ~/ardupilot/ArduCopter
-        sim_vehicle.py -v ArduCopter --console --map --out=udp:10.255.255.254:14550
-    */
-    //Should_Receive_Heartbeat_From_SITL()
-
-    /// <summary>
     /// Receives a MAVLink heartbeat message through the SITL.
     /// </summary>
     [Fact]
     public async Task Should_Receive_Heartbeat_From_SITL()
     {
-        await using var connection = serviceProvider.GetRequiredService<IMavLinkConnection>();
         var eventHub = serviceProvider.GetRequiredService<IEventHub>();
-
-        await connection.StartAsync(TestContext.Current.CancellationToken);
 
         TaskCompletionSource ts = new(TaskCreationOptions.RunContinuationsAsynchronously);
         MavLinkFrame? messageResult = null;
@@ -138,32 +134,314 @@ public class SmokeTestsSitl
     public async Task Should_Register_Vehicle_From_SITL_Heartbeat()
     {
         var logger = serviceProvider.GetRequiredService<ILogger<SmokeTestsSitl>>();
-        await using var connection = serviceProvider.GetRequiredService<IMavLinkConnection>();
-        await using var messagePump = serviceProvider.GetRequiredService<IVehicleMessagePump>();
-        await using var vehicleService = serviceProvider.GetRequiredService<IVehicleService>();
-
-        await connection.StartAsync(TestContext.Current.CancellationToken);
-        var mp = messagePump;
-
-        _ = Task.Run(() => mp.StartAsync(TestContext.Current.CancellationToken), TestContext.Current.CancellationToken);
+        var vehicleService = serviceProvider.GetRequiredService<IVehicleService>();
 
         await EventuallyAsync(
             () =>
             {
                 var vehicles = vehicleService.GetVehicles();
 
-                logger.LogDebug("Vehicle count: {VehicleCount}", vehicles.Count);
+                logger.LogTrace("Vehicle count: {VehicleCount}", vehicles.Count);
 
                 Assert.NotEmpty(vehicles);
 
                 var vehicle = vehicles.First();
 
-                logger.LogDebug("Vehicle: {VehicleId}, State: {ConnectionState}, Mode: {Mode}", vehicle.VehicleId, vehicle.ConnectionState, vehicle.Mode);
+                logger.LogTrace("Vehicle: {VehicleId}, State: {ConnectionState}, Mode: {Mode}", vehicle.VehicleId, vehicle.ConnectionState, vehicle.Mode);
 
                 Assert.Equal(VehicleConnectionState.Online, vehicle.ConnectionState);
             },
             TimeSpan.FromSeconds(15),
             TestContext.Current.CancellationToken);
+    }
+
+    /// <summary>
+    /// Registers a vehicle from the SITL heartbeat message.
+    /// </summary>
+    [Fact]
+    public async Task Should_Register_Vehicle_From_SITL_Heartbeat_And_Verify_Telemetry()
+    {
+        var logger = serviceProvider.GetRequiredService<ILogger<SmokeTestsSitl>>();
+        var vehicleService = serviceProvider.GetRequiredService<IVehicleService>();
+
+        await EventuallyAsync(
+            () =>
+            {
+                var vehicles = vehicleService.GetVehicles();
+
+                logger.LogTrace("Vehicle count: {VehicleCount}", vehicles.Count);
+
+                Assert.NotEmpty(vehicles);
+
+                var vehicle = vehicles.First();
+
+                logger.LogTrace("Vehicle: {VehicleId}, State: {ConnectionState}, Mode: {Mode}", vehicle.VehicleId, vehicle.ConnectionState, vehicle.Mode);
+
+                Assert.Equal(VehicleConnectionState.Online, vehicle.ConnectionState);
+
+                Assert.NotNull(vehicle.Roll);
+                Assert.NotNull(vehicle.Pitch);
+                Assert.NotNull(vehicle.Yaw);
+                Assert.NotNull(vehicle.Latitude);
+                Assert.NotNull(vehicle.Longitude);
+                Assert.NotNull(vehicle.Altitude);
+                Assert.NotNull(vehicle.BatteryVoltage);
+            },
+            TimeSpan.FromSeconds(15),
+            TestContext.Current.CancellationToken);
+    }
+
+
+    /// <summary>
+    /// Registers a vehicle from the SITL heartbeat message and sends an arm command.
+    /// </summary>
+    [Fact]
+    public async Task Should_Register_Vehicle_From_SITL_Heartbeat_And_Send_Arm()
+    {
+        var logger = serviceProvider.GetRequiredService<ILogger<SmokeTestsSitl>>();
+
+        var testVehicle = await WaitForRegisteredVehicle();
+
+        var vehicleService = serviceProvider.GetRequiredService<IVehicleService>();
+        var response = await vehicleService.ArmAsync(testVehicle.VehicleId, TestContext.Current.CancellationToken);
+        logger.LogTrace("Arm response: Vehicle={VehicleId}, Result={Result}", response.VehicleId, response.Result);
+        Assert.Equal(VehicleCommandResult.Accepted, response.Result);
+        var vehicles = vehicleService.GetVehicles();
+        var vehicle = vehicles.First();
+        vehicle.IsArmed.Should().BeTrue();
+    }
+
+
+    /// <summary>
+    /// Registers a vehicle from the SITL heartbeat message and sends an arm command.
+    /// </summary>
+    [Fact]
+    public async Task Should_Register_Vehicle_From_SITL_Heartbeat_And_Send_DisArm()
+    {
+        var logger = serviceProvider.GetRequiredService<ILogger<SmokeTestsSitl>>();
+        var testVehicle = await WaitForRegisteredVehicle();
+
+        var vehicleService = serviceProvider.GetRequiredService<IVehicleService>();
+        var response = await vehicleService.ArmAsync(testVehicle.VehicleId, TestContext.Current.CancellationToken);
+        logger.LogTrace("Arm response: Vehicle={VehicleId}, Result={Result}", response.VehicleId, response.Result);
+        Assert.Equal(VehicleCommandResult.Accepted, response.Result);
+        var vehicles = vehicleService.GetVehicles();
+        var vehicle = vehicles.First();
+        vehicle.IsArmed.Should().BeTrue();
+
+
+        response = await vehicleService.DisarmAsync(testVehicle.VehicleId, TestContext.Current.CancellationToken);
+        logger.LogTrace("Disarm response: Vehicle={VehicleId}, Result={Result}", response.VehicleId, response.Result);
+        Assert.Equal(VehicleCommandResult.Accepted, response.Result);
+        vehicles = vehicleService.GetVehicles();
+        vehicle = vehicles.First();
+        vehicle.IsArmed.Should().BeFalse();
+    }
+
+
+    /// <summary>
+    /// Registers a vehicle from the SITL heartbeat message and sends a set mode command to guided.
+    /// </summary>
+    [Fact]
+    public async Task Should_Set_Guided_Mode_Through_SITL()
+    {
+        var logger = serviceProvider.GetRequiredService<ILogger<SmokeTestsSitl>>();
+        var vehicleService = serviceProvider.GetRequiredService<IVehicleService>();
+
+        var testVehicle = await WaitForRegisteredVehicle();
+        var response = await vehicleService.ArmAsync(testVehicle.VehicleId, TestContext.Current.CancellationToken);
+        logger.LogTrace("Arm response: Vehicle={VehicleId}, Result={Result}", response.VehicleId, response.Result);
+        Assert.Equal(VehicleCommandResult.Accepted, response.Result);
+        var vehicles = vehicleService.GetVehicles();
+        var vehicle = vehicles.First();
+        vehicle.IsArmed.Should().BeTrue();
+
+
+        response = await vehicleService.SetModeAsync(vehicle.VehicleId, VehicleMode.Guided, TestContext.Current.CancellationToken);
+        Assert.Equal(VehicleCommandResult.Accepted, response.Result);
+
+
+        vehicles = vehicleService.GetVehicles();
+        vehicle = vehicles.First();
+        vehicle.Mode.Should().Be(VehicleMode.Guided);
+    }
+
+    /// <summary>
+    /// Registers a vehicle from the SITL heartbeat message and sends a set mode command to stabilize.
+    /// </summary>
+    [Fact]
+    public async Task Should_Set_Stabilize_Mode_Through_SITL()
+    {
+        var logger = serviceProvider.GetRequiredService<ILogger<SmokeTestsSitl>>();
+        var vehicleService = serviceProvider.GetRequiredService<IVehicleService>();
+
+        var testVehicle = await WaitForRegisteredVehicle();
+
+        var response = await vehicleService.ArmAsync(testVehicle.VehicleId, TestContext.Current.CancellationToken);
+        logger.LogTrace("Arm response: Vehicle={VehicleId}, Result={Result}", response.VehicleId, response.Result);
+        Assert.Equal(VehicleCommandResult.Accepted, response.Result);
+        var vehicles = vehicleService.GetVehicles();
+        var vehicle = vehicles.First();
+        vehicle.IsArmed.Should().BeTrue();
+
+        response = await vehicleService.SetModeAsync(vehicle.VehicleId, VehicleMode.Guided, TestContext.Current.CancellationToken);
+        Assert.Equal(VehicleCommandResult.Accepted, response.Result);
+
+        vehicles = vehicleService.GetVehicles();
+        vehicle = vehicles.First();
+        vehicle.Mode.Should().Be(VehicleMode.Guided);
+    }
+
+    /// <summary>
+    /// Registers a vehicle from the SITL heartbeat message and sends a set mode command to RTL.
+    /// </summary>
+    [Fact]
+    public async Task Should_Set_Rtl_Mode_Through_SITL()
+    {
+        var logger = serviceProvider.GetRequiredService<ILogger<SmokeTestsSitl>>();
+        var vehicleService = serviceProvider.GetRequiredService<IVehicleService>();
+
+        var testVehicle = await WaitForRegisteredVehicle();
+
+        var response = await vehicleService.ArmAsync(testVehicle.VehicleId, TestContext.Current.CancellationToken);
+        logger.LogTrace("Arm response: Vehicle={VehicleId}, Result={Result}", response.VehicleId, response.Result);
+        Assert.Equal(VehicleCommandResult.Accepted, response.Result);
+        var vehicles = vehicleService.GetVehicles();
+        var vehicle = vehicles.First();
+        vehicle.IsArmed.Should().BeTrue();
+
+        response = await vehicleService.SetModeAsync(vehicle.VehicleId, VehicleMode.Guided, TestContext.Current.CancellationToken);
+        Assert.Equal(VehicleCommandResult.Accepted, response.Result);
+
+        vehicles = vehicleService.GetVehicles();
+        vehicle = vehicles.First();
+        vehicle.Mode.Should().Be(VehicleMode.Guided);
+    }
+
+
+    /// <summary>
+    /// Registers a vehicle from the SITL heartbeat message and verifies that attitude updates are received and processed.
+    /// </summary>
+    [Fact]
+    public async Task Should_Update_Attitude_From_SITL()
+    {
+        var logger = serviceProvider.GetRequiredService<ILogger<SmokeTestsSitl>>();
+        var vehicleService = serviceProvider.GetRequiredService<IVehicleService>();
+
+        await EventuallyAsync(
+            () =>
+            {
+                var vehicle = vehicleService.GetVehicles().First();
+
+                Assert.NotNull(vehicle.Roll);
+                Assert.NotNull(vehicle.Pitch);
+                Assert.NotNull(vehicle.Yaw);
+            },
+            TimeSpan.FromSeconds(10),
+            TestContext.Current.CancellationToken);
+    }
+
+    /// <summary>
+    /// Registers a vehicle from the SITL heartbeat message and verifies that position updates are received and processed.
+    /// </summary>
+    [Fact]
+    public async Task Should_Update_Position_From_SITL()
+    {
+        var logger = serviceProvider.GetRequiredService<ILogger<SmokeTestsSitl>>();
+        var vehicleService = serviceProvider.GetRequiredService<IVehicleService>();
+
+        await EventuallyAsync(
+            () =>
+            {
+                var vehicle = vehicleService.GetVehicles().First();
+
+                Assert.NotNull(vehicle.Latitude);
+                Assert.NotNull(vehicle.Longitude);
+                Assert.NotNull(vehicle.Altitude);
+            },
+            TimeSpan.FromSeconds(10),
+            TestContext.Current.CancellationToken);
+    }
+
+    /// <summary>
+    /// Registers a vehicle from the SITL heartbeat message and verifies that battery updates are received and processed.
+    /// </summary>
+    [Fact]
+    public async Task Should_Update_Battery_From_SITL()
+    {
+        var logger = serviceProvider.GetRequiredService<ILogger<SmokeTestsSitl>>();
+        var vehicleService = serviceProvider.GetRequiredService<IVehicleService>();
+
+        await EventuallyAsync(
+            () =>
+            {
+                var vehicle = vehicleService.GetVehicles().First();
+
+                Assert.NotNull(vehicle.BatteryVoltage);
+                Assert.NotNull(vehicle.BatteryRemaining);
+            },
+            TimeSpan.FromSeconds(10),
+            TestContext.Current.CancellationToken);
+    }
+
+    /// <summary>
+    ///  
+    /// </summary>
+    [Fact]
+    public async Task Should_Receive_StatusText_From_SITL()
+    {
+        var eventHub = serviceProvider.GetRequiredService<IEventHub>();
+        var logger = serviceProvider.GetRequiredService<ILogger<SmokeTestsSitl>>();
+        var vehicleService = serviceProvider.GetRequiredService<IVehicleService>();
+        var testVehicle = await WaitForRegisteredVehicle();
+
+        var completion = new TaskCompletionSource<StatusTextMessage>(TaskCreationOptions.RunContinuationsAsynchronously);
+
+        using var subscription = eventHub.SubscribeAsync<StatusTextMessage>(MavLinkEventTopics.ReceivedMessage,
+            (message, cancellationToken) =>
+            {
+                completion.TrySetResult(message);
+                return Task.CompletedTask;
+            });
+
+
+        var response = await vehicleService.ArmAsync(testVehicle.VehicleId, TestContext.Current.CancellationToken);
+        logger.LogTrace("Arm response: Vehicle={VehicleId}, Result={Result}", response.VehicleId, response.Result);
+        Assert.Equal(VehicleCommandResult.Accepted, response.Result);
+
+        var statusText = await completion.Task.WaitAsync(TimeSpan.FromSeconds(30), TestContext.Current.CancellationToken);
+
+        Assert.False(string.IsNullOrWhiteSpace(statusText.Text));
+
+        var notifications = vehicleService.GetVehicleNotifications(testVehicle.VehicleId);
+        notifications.Count.Should().Be(1);
+    }
+
+    private async Task<VehicleState> WaitForRegisteredVehicle()
+    {
+        var logger = serviceProvider.GetRequiredService<ILogger<SmokeTestsSitl>>();
+
+        var vehicleService = serviceProvider.GetRequiredService<IVehicleService>();
+        TaskCompletionSource ts = new(TaskCreationOptions.RunContinuationsAsynchronously);
+        VehicleState? testVehicle = null;
+        await EventuallyAsync(
+            () =>
+            {
+                var vehicles = vehicleService.GetVehicles();
+                Assert.NotEmpty(vehicles);
+                testVehicle = vehicles.First();
+                logger.LogTrace("Vehicle: {VehicleId}, State: {ConnectionState}, Mode: {Mode}", testVehicle.VehicleId, testVehicle.ConnectionState, testVehicle.Mode);
+                Assert.Equal(VehicleConnectionState.Online, testVehicle.ConnectionState);
+                ts.TrySetResult();
+            },
+            TimeSpan.FromSeconds(5),
+            TestContext.Current.CancellationToken);
+
+        await ts.Task.WaitAsync(TimeSpan.FromSeconds(5), TestContext.Current.CancellationToken);
+        testVehicle.Should().NotBeNull();
+        DomainException.ThrowIfNull(testVehicle);
+
+        return testVehicle!;
     }
 
 

@@ -15,7 +15,7 @@ public sealed class HeartbeatVehicleHandler(IVehicleRegistry vehicleRegistry, IL
     /// <inheritdoc />
     public VehicleSession Handle(HeartbeatMessage message)
     {
-        logger.LogDebug("HeartbeatVehicleHandler - Handling heartbeat message from vehicle {VehicleId}", new VehicleId(message.SystemId, message.ComponentId));
+         logger.LogTrace("HeartbeatVehicleHandler - Handling heartbeat message from vehicle {VehicleId}", new VehicleId(message.SystemId, message.ComponentId));
         var vehicleId = new VehicleId(message.SystemId, message.ComponentId);
 
         var result = vehicleRegistry.RegisterOrUpdateHeartbeat(

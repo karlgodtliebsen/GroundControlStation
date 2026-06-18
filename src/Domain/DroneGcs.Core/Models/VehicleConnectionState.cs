@@ -8,5 +8,6 @@ public enum VehicleConnectionState
     Unknown = 0,
     Online = 1,
     Stale = 2,
-    Offline = 3
+    Degraded = 3,
+    Offline = 4
 }

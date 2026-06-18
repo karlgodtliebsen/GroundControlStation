@@ -1,6 +1,8 @@
 ﻿using DroneGcs.Core.DomainEvents;
 using DroneGcs.Core.Models;
 
+using DroneGs.MavLink.Messages;
+
 namespace DroneGcs.Core.Services;
 
 /// <summary>
@@ -10,7 +12,6 @@ public sealed class VehicleSession(VehicleState initialState)
 {
     private VehicleState state = initialState;
     private const byte MavModeFlagSafetyArmed = 0b1000_0000;
-
 
     /// <summary>
     /// Gets the unique identifier of the vehicle.
@@ -23,12 +24,19 @@ public sealed class VehicleSession(VehicleState initialState)
     public VehicleState State => state;
 
     /// <summary>
+    /// Gets the notifications for the vehicle.
+    /// </summary>
+    public IList<VehicleStatusText> Notifications { get; private set; } = [];
+
+
+    /// <summary>
     /// Updates the connection state of the vehicle based on the elapsed time since the last heartbeat.
     /// </summary>
     /// <param name="now">The current date and time.</param>
     /// <param name="staleAfter">The time span after which the vehicle is considered stale.</param>
+    /// <param name="degradedAfter">The time span after which the vehicle is considered degraded.</param>
     /// <param name="offlineAfter">The time span after which the vehicle is considered offline.</param>
-    public VehicleConnectionStateChanged? UpdateConnectionState(DateTimeOffset now, TimeSpan staleAfter, TimeSpan offlineAfter)
+    public VehicleConnectionStateChanged? UpdateConnectionState(DateTimeOffset now, TimeSpan staleAfter, TimeSpan degradedAfter, TimeSpan offlineAfter)
     {
         var previousState = state.ConnectionState;
 
@@ -37,9 +45,11 @@ public sealed class VehicleSession(VehicleState initialState)
         var currentState =
             age > offlineAfter
                 ? VehicleConnectionState.Offline
-                : age > staleAfter
-                    ? VehicleConnectionState.Stale
-                    : VehicleConnectionState.Online;
+                : age > degradedAfter
+                    ? VehicleConnectionState.Degraded
+                    : age > staleAfter
+                        ? VehicleConnectionState.Stale
+                        : VehicleConnectionState.Online;
 
         state = state with
         {
@@ -135,6 +145,41 @@ public sealed class VehicleSession(VehicleState initialState)
             BatteryVoltage = batteryVoltage
         };
     }
+
+    /// <summary>
+    /// Applies the armed state to the vehicle's state.
+    /// </summary>
+    /// <param name="isArmed">Indicates whether the vehicle is armed.</param>
+    public void ApplyArm(bool isArmed)
+    {
+        state = state with
+        {
+            IsArmed = isArmed
+        };
+    }
+
+    /// <summary>
+    /// Applies the mode to the vehicle's state.
+    /// </summary>
+    /// <param name="mode">The mode to apply.</param>
+    public void ApplyMode(VehicleMode mode)
+    {
+        state = state with
+        {
+            Mode = mode
+        };
+    }
+
+
+    /// <summary>
+    /// Applies a status text message to the vehicle's state.
+    /// </summary>
+    /// <param name="message">The status text message to apply.</param>
+    public void ApplyStatusText(StatusTextMessage message)
+    {
+        Notifications.Add(new VehicleStatusText(message.SystemId, message.ComponentId, message.Text, DateTimeOffset.UtcNow));
+    }
+
 
     private static VehicleMode MapMode(uint customMode)
     {

@@ -89,8 +89,7 @@ public class VehicleTests
         var handler = serviceProvider.GetRequiredService<IHeartbeatVehicleHandler>();
         await using var client = serviceProvider.GetRequiredService<IMavLinkClient>();
         await using var connection = serviceProvider.GetRequiredService<IMavLinkConnection>();
-
-        await connection.StartAsync(TestContext.Current.CancellationToken);
+        var messagePump = serviceProvider.GetRequiredService<IVehicleMessagePump>();
 
         output.WriteLine($"Client IsRunning: {client.IsRunning}");
         output.WriteLine($"Transport IsConnected: {client.IsConnected}");
@@ -98,20 +97,20 @@ public class VehicleTests
             serviceProvider.GetRequiredService<IMavLinkFrameParser>(),
             serviceProvider.GetRequiredService<IMavLinkCrcExtraProvider>(), "127.0.0.1", 14550, 14551, TimeSpan.FromMilliseconds(100));
 
-        await simulator.StartAsync(TestContext.Current.CancellationToken);
 
         TaskCompletionSource ts = new(TaskCreationOptions.RunContinuationsAsynchronously);
         HeartbeatMessage? messageResult = null;
-        using var subscription = eventHub.SubscribeAsync<MavLinkMessage>(MavLinkEventTopics.ReceivedMessage, (m, cts) =>
+        using var subscription = eventHub.SubscribeAsync<HeartbeatMessage>(MavLinkEventTopics.ReceivedMessage, (heartbeatMessage, ct) =>
         {
-            if (m is HeartbeatMessage heartbeatMessage)
-            {
-                messageResult = heartbeatMessage;
-                ts.TrySetResult();
-            }
-
+            messageResult = heartbeatMessage;
+            ts.TrySetResult();
             return Task.CompletedTask;
         });
+
+
+        _ = Task.Run(() => messagePump.StartAsync(TestContext.Current.CancellationToken), TestContext.Current.CancellationToken);
+        _ = Task.Run(() => connection.StartAsync(TestContext.Current.CancellationToken), TestContext.Current.CancellationToken);
+        _ = Task.Run(() => simulator.StartAsync(TestContext.Current.CancellationToken), TestContext.Current.CancellationToken);
 
 
         await ts.Task.WaitAsync(TimeSpan.FromSeconds(5), TestContext.Current.CancellationToken);
@@ -324,10 +323,35 @@ public class VehicleTests
             3,
             receivedAt);
 
-        registry.UpdateConnectionStates(receivedAt.AddSeconds(3), TimeSpan.FromSeconds(2), TimeSpan.FromSeconds(5));
+        registry.UpdateConnectionStates(receivedAt.AddSeconds(3), TimeSpan.FromSeconds(2), TimeSpan.FromSeconds(5), TimeSpan.FromSeconds(10));
 
         Assert.Equal(VehicleConnectionState.Stale,
             vehicleRegistryResult.Vehicle.State.ConnectionState);
+    }
+
+    /// <summary>
+    /// Tests that a vehicle is marked as degraded when its heartbeat is very old.
+    /// </summary>
+    [Fact]
+    public void Should_Mark_Vehicle_As_Degraded_When_Heartbeat_Is_Old()
+    {
+        var registry = serviceProvider.GetRequiredService<IVehicleRegistry>();
+
+        var receivedAt = DateTimeOffset.UtcNow;
+
+        var vehicleRegistryResult = registry.RegisterOrUpdateHeartbeat(
+            new VehicleId(1, 1),
+            0,
+            2,
+            3,
+            0,
+            4,
+            3,
+            receivedAt);
+
+        registry.UpdateConnectionStates(receivedAt.AddSeconds(6), TimeSpan.FromSeconds(2), TimeSpan.FromSeconds(5), TimeSpan.FromSeconds(10));
+
+        Assert.Equal(VehicleConnectionState.Degraded, vehicleRegistryResult.Vehicle.State.ConnectionState);
     }
 
     /// <summary>
@@ -350,13 +374,50 @@ public class VehicleTests
             3,
             receivedAt);
 
-        registry.UpdateConnectionStates(
-            receivedAt.AddSeconds(6),
-            TimeSpan.FromSeconds(2),
-            TimeSpan.FromSeconds(5));
+        registry.UpdateConnectionStates(receivedAt.AddSeconds(12), TimeSpan.FromSeconds(2), TimeSpan.FromSeconds(5), TimeSpan.FromSeconds(10));
+
+        Assert.Equal(VehicleConnectionState.Offline, vehicleRegistryResult.Vehicle.State.ConnectionState);
+    }
+
+
+    /// <summary>
+    /// Tests that a vehicle is marked as online when a new heartbeat arrives after it was marked degraded.
+    /// </summary>
+    [Fact]
+    public void Should_Mark_Vehicle_Online_When_New_Heartbeat_Arrives_After_Degraded()
+    {
+        var registry = serviceProvider.GetRequiredService<IVehicleRegistry>();
+
+
+        var receivedAt = DateTimeOffset.UtcNow;
+        var vehicleId = new VehicleId(1, 1);
+
+        var vehicleRegistryResult = registry.RegisterOrUpdateHeartbeat(
+            vehicleId,
+            0,
+            2,
+            3,
+            0,
+            4,
+            3,
+            receivedAt);
+
+        registry.UpdateConnectionStates(receivedAt.AddSeconds(6), TimeSpan.FromSeconds(2), TimeSpan.FromSeconds(5), TimeSpan.FromSeconds(10));
+
+        Assert.Equal(VehicleConnectionState.Degraded, vehicleRegistryResult.Vehicle.State.ConnectionState);
+
+        registry.RegisterOrUpdateHeartbeat(
+            vehicleId,
+            0,
+            2,
+            3,
+            0,
+            4,
+            3,
+            receivedAt.AddSeconds(7));
 
         Assert.Equal(
-            VehicleConnectionState.Offline,
+            VehicleConnectionState.Online,
             vehicleRegistryResult.Vehicle.State.ConnectionState);
     }
 
@@ -382,11 +443,10 @@ public class VehicleTests
             3,
             receivedAt);
 
-        registry.UpdateConnectionStates(receivedAt.AddSeconds(6), TimeSpan.FromSeconds(2), TimeSpan.FromSeconds(5));
+        registry.UpdateConnectionStates(receivedAt.AddSeconds(12), TimeSpan.FromSeconds(2), TimeSpan.FromSeconds(5), TimeSpan.FromSeconds(10));
 
         Assert.Equal(
-            VehicleConnectionState.Offline,
-            vehicleRegistryResult.Vehicle.State.ConnectionState);
+            VehicleConnectionState.Offline, vehicleRegistryResult.Vehicle.State.ConnectionState);
 
         registry.RegisterOrUpdateHeartbeat(
             vehicleId,
@@ -488,7 +548,7 @@ public class VehicleTests
 
         await using var client = serviceProvider.GetRequiredService<IMavLinkClient>();
         await using var connection = serviceProvider.GetRequiredService<IMavLinkConnection>();
-        await connection.StartAsync(TestContext.Current.CancellationToken);
+        var messagePump = serviceProvider.GetRequiredService<IVehicleMessagePump>();
 
         await using var simulator =
             new FakeMavLinkVehicle2(
@@ -498,26 +558,24 @@ public class VehicleTests
                 endpoint.LocalPort,
                 endpoint.RemotePort, TimeSpan.FromMilliseconds(100));
 
-        await simulator.StartAsync(TestContext.Current.CancellationToken);
-
-        var encoder = serviceProvider.GetRequiredService<IMavLinkCommandEncoder>();
-
-        var armCommand = encoder.EncodeArmDisarm(1, 1, true);
-
-        await connection.SendRawAsync(armCommand, TestContext.Current.CancellationToken);
 
         TaskCompletionSource ts = new(TaskCreationOptions.RunContinuationsAsynchronously);
         CommandAckMessage? messageResult = null;
-        using var subscription = eventHub.SubscribeAsync<MavLinkMessage>(MavLinkEventTopics.ReceivedMessage, (m, cts) =>
+        using var subscription = eventHub.SubscribeAsync<CommandAckMessage>(MavLinkEventTopics.ReceivedMessage, (commandAckMessage, ct) =>
         {
-            if (m is CommandAckMessage commandAckMessage)
-            {
-                messageResult = commandAckMessage;
-                ts.TrySetResult();
-            }
-
+            messageResult = commandAckMessage;
+            ts.TrySetResult();
             return Task.CompletedTask;
         });
+
+        _ = Task.Run(() => messagePump.StartAsync(TestContext.Current.CancellationToken), TestContext.Current.CancellationToken);
+        _ = Task.Run(() => connection.StartAsync(TestContext.Current.CancellationToken), TestContext.Current.CancellationToken);
+        _ = Task.Run(() => simulator.StartAsync(TestContext.Current.CancellationToken), TestContext.Current.CancellationToken);
+
+        var encoder = serviceProvider.GetRequiredService<IMavLinkCommandEncoder>();
+        var armCommand = encoder.EncodeArmDisarm(1, 1, true);
+        await connection.SendRawAsync(armCommand, TestContext.Current.CancellationToken);
+
 
         await ts.Task.WaitAsync(TimeSpan.FromSeconds(5), TestContext.Current.CancellationToken);
         messageResult.Should().NotBeNull();

@@ -20,6 +20,9 @@ public static partial class LoggingLibraryConfigurator
         services.AddLogging(loggingBuilder =>
         {
             loggingBuilder.ClearProviders();
+            loggingBuilder.SetMinimumLevel(LogLevel.Information);
+            loggingBuilder.AddFilter("Microsoft", LogLevel.Warning);
+            loggingBuilder.AddFilter("System", LogLevel.Warning);
             loggingBuilder.AddConfiguration(configuration.GetSection("Logging"));
         });
         return services;
@@ -37,7 +40,11 @@ public static partial class LoggingLibraryConfigurator
         services.AddLogging((ILoggingBuilder loggingBuilder) =>
         {
             loggingBuilder.ClearProviders();
+            loggingBuilder.SetMinimumLevel(LogLevel.Information);
+            loggingBuilder.AddFilter("Microsoft", LogLevel.Warning);
+            loggingBuilder.AddFilter("System", LogLevel.Warning);
             loggingBuilder.AddConfiguration(configuration.GetSection("Logging"));
+
             optionsAction?.Invoke(services, loggingBuilder, configuration);
         });
         return services;
@@ -55,6 +62,9 @@ public static partial class LoggingLibraryConfigurator
             loggingBuilder.ClearProviders();
             loggingBuilder.AddConsole();
             loggingBuilder.AddDebug();
+            loggingBuilder.SetMinimumLevel(LogLevel.Debug);
+            loggingBuilder.AddFilter("Microsoft", LogLevel.Warning);
+            loggingBuilder.AddFilter("System", LogLevel.Warning);
         });
         return services;
     }
@@ -70,9 +80,12 @@ public static partial class LoggingLibraryConfigurator
         services.AddLogging(loggingBuilder =>
         {
             loggingBuilder.ClearProviders();
-            loggingBuilder.AddConfiguration(configuration.GetSection("Logging"));
+            loggingBuilder.SetMinimumLevel(LogLevel.Information);
+            loggingBuilder.AddFilter("Microsoft", LogLevel.Warning);
+            loggingBuilder.AddFilter("System", LogLevel.Warning);
             loggingBuilder.AddConsole();
             loggingBuilder.AddDebug();
+            loggingBuilder.AddConfiguration(configuration.GetSection("Logging"));
         });
         return services;
     }

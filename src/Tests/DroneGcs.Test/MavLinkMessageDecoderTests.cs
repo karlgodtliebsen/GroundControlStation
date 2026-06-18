@@ -1,5 +1,6 @@
 ﻿using Domain.Library.EventHub.Abstractions;
 
+using DroneGcs.Core.Services;
 using DroneGcs.Simulator;
 using DroneGcs.Test.Configuration;
 
@@ -42,26 +43,26 @@ public sealed class MavLinkMessageDecoderTests
         await using var client = serviceProvider.GetRequiredService<IMavLinkClient>();
         await using var connection = serviceProvider.GetRequiredService<IMavLinkConnection>();
         var eventHub = serviceProvider.GetRequiredService<IEventHub>();
-        await connection.StartAsync(TestContext.Current.CancellationToken);
+        var messagePump = serviceProvider.GetRequiredService<IVehicleMessagePump>();
 
         await using var simulator = new FakeMavLinkVehicle2(
             serviceProvider.GetRequiredService<IMavLinkFrameParser>(),
             serviceProvider.GetRequiredService<IMavLinkCrcExtraProvider>(), "127.0.0.1", 14550, 14551, TimeSpan.FromMilliseconds(100));
 
-        await simulator.StartAsync(TestContext.Current.CancellationToken);
-
         TaskCompletionSource ts = new(TaskCreationOptions.RunContinuationsAsynchronously);
         HeartbeatMessage? messageResult = null;
-        using var subscription = eventHub.SubscribeAsync<MavLinkMessage>(MavLinkEventTopics.ReceivedMessage, (m, cts) =>
-        {
-            if (m is HeartbeatMessage heartbeatMessage)
-            {
-                messageResult = heartbeatMessage;
-                ts.TrySetResult();
-            }
 
+        using var subscription = eventHub.SubscribeAsync<HeartbeatMessage>(MavLinkEventTopics.ReceivedMessage, (heartbeatMessage, ct) =>
+        {
+            messageResult = heartbeatMessage;
+            ts.TrySetResult();
             return Task.CompletedTask;
         });
+
+        _ = Task.Run(() => messagePump.StartAsync(TestContext.Current.CancellationToken), TestContext.Current.CancellationToken);
+        _ = Task.Run(() => connection.StartAsync(TestContext.Current.CancellationToken), TestContext.Current.CancellationToken);
+        _ = Task.Run(() => simulator.StartAsync(TestContext.Current.CancellationToken), TestContext.Current.CancellationToken);
+
 
         await ts.Task.WaitAsync(TimeSpan.FromSeconds(5), TestContext.Current.CancellationToken);
         messageResult.Should().NotBeNull();

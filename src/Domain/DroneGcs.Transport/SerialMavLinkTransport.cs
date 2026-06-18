@@ -56,7 +56,7 @@ public sealed class SerialMavLinkTransport : IMavLinkTransport
             serialPort.Open();
         }
 
-        logger.LogDebug("Serial port {PortName} opened at {BaudRate} baud.", serialPort.PortName, serialPort.BaudRate);
+         logger.LogTrace("Serial port {PortName} opened at {BaudRate} baud.", serialPort.PortName, serialPort.BaudRate);
         return Task.CompletedTask;
     }
 
@@ -71,7 +71,7 @@ public sealed class SerialMavLinkTransport : IMavLinkTransport
         var bytesRead = await serialPort.BaseStream
             .ReadAsync(buffer, cancellationToken)
             .ConfigureAwait(false);
-        logger.LogDebug("Read {BytesRead} bytes from serial port {PortName}.", bytesRead, serialPort.PortName);
+         logger.LogTrace("Read {BytesRead} bytes from serial port {PortName}.", bytesRead, serialPort.PortName);
         return new TransportReceiveResult(bytesRead, endpoint);
     }
 
@@ -86,7 +86,7 @@ public sealed class SerialMavLinkTransport : IMavLinkTransport
         await serialPort.BaseStream
             .WriteAsync(data, cancellationToken)
             .ConfigureAwait(false);
-        logger.LogDebug("Wrote {BytesWritten} bytes to serial port {PortName}.", data.Length, serialPort.PortName);
+         logger.LogTrace("Wrote {BytesWritten} bytes to serial port {PortName}.", data.Length, serialPort.PortName);
     }
 
     /// <inheritdoc />
@@ -99,7 +99,7 @@ public sealed class SerialMavLinkTransport : IMavLinkTransport
             serialPort.Close();
         }
 
-        logger.LogDebug("Serial port {PortName} closed.", serialPort.PortName);
+         logger.LogTrace("Serial port {PortName} closed.", serialPort.PortName);
         return Task.CompletedTask;
     }
 
@@ -113,7 +113,7 @@ public sealed class SerialMavLinkTransport : IMavLinkTransport
 
         serialPort.Dispose();
         GC.SuppressFinalize(this);
-        logger.LogDebug("Serial port {PortName} disposed.", serialPort.PortName);
+         logger.LogTrace("Serial port {PortName} disposed.", serialPort.PortName);
         return ValueTask.CompletedTask;
     }
 }

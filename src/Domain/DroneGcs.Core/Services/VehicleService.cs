@@ -1,4 +1,8 @@
-﻿using DroneGcs.Core.Commands;
+﻿using System.Collections.ObjectModel;
+
+using DotNext.Collections.Generic;
+
+using DroneGcs.Core.Commands;
 using DroneGcs.Core.Models;
 
 namespace DroneGcs.Core.Services;
@@ -19,43 +23,71 @@ public sealed class VehicleService(IVehicleRegistry registry, IVehicleCommandSer
     }
 
     /// <inheritdoc />
-    public VehicleState GetVehicle(VehicleId vehicleId)
+    public VehicleState? GetVehicleState(VehicleId vehicleId)
     {
-        return registry.GetRequired(vehicleId).State;
+        return registry.GetRequired(vehicleId)?.State;
     }
 
     /// <inheritdoc />
-    public Task<VehicleCommandResponse> ArmAsync(VehicleId vehicleId, CancellationToken cancellationToken)
+    public VehicleSession? GetVehicle(VehicleId vehicleId)
     {
-        EnsureVehicleExists(vehicleId);
-
-        return commandService.ArmAsync(vehicleId, cancellationToken);
+        return registry.Vehicles.FirstOrDefault(v => v.State.VehicleId == vehicleId);
     }
 
     /// <inheritdoc />
-    public Task<VehicleCommandResponse> DisarmAsync(VehicleId vehicleId, CancellationToken cancellationToken)
+    public IReadOnlyCollection<VehicleStatusText> GetVehicleNotifications(VehicleId vehicleId)
+    {
+        return new ReadOnlyCollection<VehicleStatusText>(registry.GetRequired(vehicleId).Notifications);
+    }
+
+
+    /// <inheritdoc />
+    public async Task<VehicleCommandResponse> ArmAsync(VehicleId vehicleId, CancellationToken cancellationToken)
     {
         EnsureVehicleExists(vehicleId);
 
-        return commandService.DisarmAsync(vehicleId, cancellationToken);
+        var result = await commandService.ArmAsync(vehicleId, cancellationToken);
+
+        if (result.Result == VehicleCommandResult.Accepted)
+        {
+            var vehicle = registry.GetRequired(vehicleId);
+            vehicle.ApplyArm(true);
+        }
+
+        return result;
+    }
+
+    /// <inheritdoc />
+    public async Task<VehicleCommandResponse> DisarmAsync(VehicleId vehicleId, CancellationToken cancellationToken)
+    {
+        EnsureVehicleExists(vehicleId);
+        var result = await commandService.DisarmAsync(vehicleId, cancellationToken);
+        if (result.Result == VehicleCommandResult.Accepted)
+        {
+            var vehicle = registry.GetRequired(vehicleId);
+            vehicle.ApplyArm(false);
+        }
+
+        return result;
     }
 
     /// <inheritdoc />  
-    public Task<VehicleCommandResponse> SetModeAsync(VehicleId vehicleId, VehicleMode mode, CancellationToken cancellationToken)
+    public async Task<VehicleCommandResponse> SetModeAsync(VehicleId vehicleId, VehicleMode mode, CancellationToken cancellationToken)
     {
         EnsureVehicleExists(vehicleId);
 
-        return commandService.SetModeAsync(vehicleId, mode, cancellationToken);
+        var result = await commandService.SetModeAsync(vehicleId, mode, cancellationToken);
+        if (result.Result == VehicleCommandResult.Accepted)
+        {
+            var vehicle = registry.GetRequired(vehicleId);
+            vehicle.ApplyMode(mode);
+        }
+
+        return result;
     }
 
     private void EnsureVehicleExists(VehicleId vehicleId)
     {
         registry.GetRequired(vehicleId);
-    }
-
-    /// <inheritdoc />
-    public async ValueTask DisposeAsync()
-    {
-        await commandService.DisposeAsync().ConfigureAwait(false);
     }
 }

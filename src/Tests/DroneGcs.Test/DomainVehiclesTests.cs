@@ -2,7 +2,6 @@
 using DroneGcs.Core.Services;
 using DroneGcs.Simulator;
 using DroneGcs.Test.Configuration;
-
 using Microsoft.Extensions.DependencyInjection;
 
 namespace DroneGcs.Test;
@@ -37,7 +36,7 @@ public class DomainVehiclesTests
     public async Task Should_Return_All_Simulated_VehiclesAsync()
     {
         var registry = serviceProvider.GetRequiredService<IVehicleRegistry>();
-        await using var vehicleService = serviceProvider.GetRequiredService<IVehicleService>();
+        var vehicleService = serviceProvider.GetRequiredService<IVehicleService>();
 
         new SimulatedVehicleState
         {
@@ -68,7 +67,7 @@ public class DomainVehiclesTests
     public async Task Should_Return_Specific_Simulated_VehicleAsync()
     {
         var registry = serviceProvider.GetRequiredService<IVehicleRegistry>();
-        await using var vehicleService = serviceProvider.GetRequiredService<IVehicleService>();
+        var vehicleService = serviceProvider.GetRequiredService<IVehicleService>();
 
         new SimulatedVehicleState
         {
@@ -78,7 +77,7 @@ public class DomainVehiclesTests
             Yaw = 1.5
         }.ApplyTo(registry);
 
-        var vehicle = vehicleService.GetVehicle(new VehicleId(1, 1));
+        var vehicle = vehicleService.GetVehicleState(new VehicleId(1, 1));
 
         Assert.Equal(new VehicleId(1, 1), vehicle.VehicleId);
         Assert.Equal(0.1, vehicle.Roll);
@@ -94,6 +93,6 @@ public class DomainVehiclesTests
     {
         var vehicleService = serviceProvider.GetRequiredService<IVehicleService>();
 
-        Assert.Throws<InvalidOperationException>(() => vehicleService.GetVehicle(new VehicleId(99, 1)));
+        Assert.Throws<InvalidOperationException>(() => vehicleService.GetVehicleState(new VehicleId(99, 1)));
     }
 }

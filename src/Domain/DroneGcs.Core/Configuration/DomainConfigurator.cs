@@ -25,18 +25,26 @@ public static class DomainConfigurator
     /// <returns>The updated service collection.</returns>
     public static IServiceCollection AddDomainServices(this IServiceCollection services, IConfiguration configuration)
     {
-        services.TryAddSingleton<IVehicleRegistry, VehicleRegistry>();
         services.TryAddSingleton<IVehicleMessagePump, VehicleMessagePump>();
         services.TryAddSingleton<IVehicleConnectionMonitor, VehicleConnectionMonitor>();
-        services.TryAddSingleton<IVehicleCommandService, VehicleCommandService>();
-        services.TryAddSingleton<IVehicleService, VehicleService>();
+
         services.TryAddSingleton<IHeartbeatVehicleHandler, HeartbeatVehicleHandler>();
         services.TryAddSingleton<IAttitudeVehicleHandler, AttitudeVehicleHandler>();
         services.TryAddSingleton<IBatteryVehicleHandler, BatteryVehicleHandler>();
         services.TryAddSingleton<IPositionVehicleHandler, PositionVehicleHandler>();
+        services.TryAddSingleton<IStatusTextHandler, StatusTextHandler>();
+
         services.TryAddSingleton<IDomainEventHub, DomainEventHub>();
         services.TryAddSingleton<ICommandAckTracker, CommandAckTracker>();
         services.TryAddSingleton<IVehicleCommandPolicy, VehicleCommandPolicy>();
+
+
+        services.TryAddSingleton<IVehicleRegistry, VehicleRegistry>();
+
+        services.TryAddTransient<IVehicleCommandService, VehicleCommandService>();
+        services.TryAddTransient<IVehicleService, VehicleService>();
+
+
         services.AddDebugLogging();
 
         return services;

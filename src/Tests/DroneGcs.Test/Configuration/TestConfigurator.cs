@@ -63,9 +63,9 @@ public static class TestConfigurator
             loggingBuilder.AddFilter("Microsoft", LogLevel.Warning);
             loggingBuilder.AddFilter("System", LogLevel.Warning);
 
-            loggingBuilder.AddConfiguration(configuration.GetSection("Logging"));
             loggingBuilder.AddConsole();
             loggingBuilder.AddDebug();
+            loggingBuilder.AddConfiguration(configuration.GetSection("Logging"));
             if (output is not null)
             {
                 services.AddSingleton<ILoggerProvider>(new XUnitConsoleMsLoggerProvider(output));

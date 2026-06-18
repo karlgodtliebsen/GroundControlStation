@@ -36,6 +36,11 @@ public sealed class CommonMavLinkCrcExtraProvider : IMavLinkCrcExtraProvider
                 crcExtra = 143;
                 return true;
 
+            case MessageIds.StatusText:
+                crcExtra = 83;
+                return true;
+
+
             default:
                 crcExtra = 0;
                 return false;

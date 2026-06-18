@@ -72,7 +72,7 @@ public sealed class TcpMavLinkTransport : IMavLinkTransport
         await tcpClient.ConnectAsync(remoteHost, remotePort, cancellationToken).ConfigureAwait(false);
 
         stream = tcpClient.GetStream();
-        logger.LogDebug("TCP transport connected to {RemoteEndPoint}", remoteEndpoint);
+         logger.LogTrace("TCP transport connected to {RemoteEndPoint}", remoteEndpoint);
     }
 
     /// <inheritdoc/>
@@ -84,7 +84,7 @@ public sealed class TcpMavLinkTransport : IMavLinkTransport
         }
 
         var bytesRead = await stream.ReadAsync(buffer, cancellationToken).ConfigureAwait(false);
-        logger.LogDebug("TCP transport received {BytesRead} bytes from {RemoteEndPoint}", bytesRead, remoteEndpoint);
+         logger.LogTrace("TCP transport received {BytesRead} bytes from {RemoteEndPoint}", bytesRead, remoteEndpoint);
         return bytesRead == 0 ? throw new IOException("TCP connection was closed by the remote host.") : new TransportReceiveResult(bytesRead, remoteEndpoint);
     }
 
@@ -105,7 +105,7 @@ public sealed class TcpMavLinkTransport : IMavLinkTransport
 
         await stream.FlushAsync(cancellationToken).ConfigureAwait(false);
 
-        logger.LogDebug("TCP transport sent {BytesSent} bytes to {RemoteEndPoint}", data.Length, remoteEndpoint);
+         logger.LogTrace("TCP transport sent {BytesSent} bytes to {RemoteEndPoint}", data.Length, remoteEndpoint);
     }
 
     /// <summary>
@@ -123,7 +123,7 @@ public sealed class TcpMavLinkTransport : IMavLinkTransport
         tcpClient?.Close();
         tcpClient?.Dispose();
         tcpClient = null;
-        logger.LogDebug("TCP transport disconnected from {RemoteEndPoint}", remoteEndpoint);
+         logger.LogTrace("TCP transport disconnected from {RemoteEndPoint}", remoteEndpoint);
         return Task.CompletedTask;
     }
 
@@ -136,6 +136,6 @@ public sealed class TcpMavLinkTransport : IMavLinkTransport
             .ConfigureAwait(false);
 
         GC.SuppressFinalize(this);
-        logger.LogDebug("TCP transport disposed for {RemoteEndPoint}", remoteEndpoint);
+         logger.LogTrace("TCP transport disposed for {RemoteEndPoint}", remoteEndpoint);
     }
 }

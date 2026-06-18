@@ -46,15 +46,12 @@ public class DomainVehicleServiceTests
 
         await using var connection = serviceProvider.GetRequiredService<IMavLinkConnection>();
 
-        await using var vehicleService = serviceProvider.GetRequiredService<IVehicleService>();
+        var vehicleService = serviceProvider.GetRequiredService<IVehicleService>();
 
         var messagePump = serviceProvider.GetRequiredService<IVehicleMessagePump>();
 
         await connection.StartAsync(TestContext.Current.CancellationToken);
 
-        var pumpTask = Task.Run(
-            () => messagePump.StartAsync(TestContext.Current.CancellationToken),
-            TestContext.Current.CancellationToken);
 
         await using var simulator =
             new FakeMavLinkVehicle2(
@@ -66,12 +63,13 @@ public class DomainVehicleServiceTests
                 TimeSpan.FromMilliseconds(100)
             );
 
+        _ = Task.Run(() => messagePump.StartAsync(TestContext.Current.CancellationToken), TestContext.Current.CancellationToken);
         await simulator.StartAsync(TestContext.Current.CancellationToken);
 
         await EventuallyAsync(
             () =>
             {
-                var state = vehicleService.GetVehicle(vehicleId);
+                var state = vehicleService.GetVehicleState(vehicleId);
 
                 Assert.Equal(vehicleId, state.VehicleId);
                 Assert.False(state.IsArmed);
@@ -86,15 +84,81 @@ public class DomainVehicleServiceTests
         await EventuallyAsync(
             () =>
             {
-                var state = vehicleService.GetVehicle(vehicleId);
+                var state = vehicleService.GetVehicleState(vehicleId);
                 Assert.True(state.IsArmed);
             },
             TimeSpan.FromSeconds(5),
             TestContext.Current.CancellationToken);
     }
 
+    /// <summary>
+    /// Tests that a vehicle can be disarmed through IVehicleService using the full MAVLink simulator pipeline.
+    /// </summary>
     [Fact]
     public async Task Should_Disarm_Vehicle_Through_VehicleService_When_Command_Is_Acked()
+    {
+        var endpoint = serviceProvider.GetRequiredService<IOptions<TransportEndpoint>>().Value;
+        var vehicleId = new VehicleId(1, 1);
+        var vehicleService = serviceProvider.GetRequiredService<IVehicleService>();
+        var messagePump = serviceProvider.GetRequiredService<IVehicleMessagePump>();
+        await using var connection = serviceProvider.GetRequiredService<IMavLinkConnection>();
+
+        await using var simulator =
+            new FakeMavLinkVehicle2(
+                serviceProvider.GetRequiredService<IMavLinkFrameParser>(),
+                serviceProvider.GetRequiredService<IMavLinkCrcExtraProvider>(),
+                endpoint.LocalHost,
+                endpoint.LocalPort,
+                endpoint.RemotePort,
+                TimeSpan.FromMilliseconds(100)
+            );
+
+        _ = Task.Run(() => connection.StartAsync(TestContext.Current.CancellationToken), TestContext.Current.CancellationToken);
+        _ = Task.Run(() => simulator.StartAsync(TestContext.Current.CancellationToken), TestContext.Current.CancellationToken);
+        _ = Task.Run(() => messagePump.StartAsync(TestContext.Current.CancellationToken), TestContext.Current.CancellationToken);
+
+        await EventuallyAsync(
+            () =>
+            {
+                var state = vehicleService.GetVehicleState(vehicleId);
+                Assert.False(state.IsArmed);
+            },
+            TimeSpan.FromSeconds(5),
+            TestContext.Current.CancellationToken);
+
+        var armResponse = await vehicleService.ArmAsync(vehicleId, TestContext.Current.CancellationToken);
+
+        Assert.Equal(VehicleCommandResult.Accepted, armResponse.Result);
+
+        await EventuallyAsync(
+            () =>
+            {
+                var state = vehicleService.GetVehicleState(vehicleId);
+                Assert.True(state.IsArmed);
+            },
+            TimeSpan.FromSeconds(5),
+            TestContext.Current.CancellationToken);
+
+        var disarmResponse = await vehicleService.DisarmAsync(vehicleId, TestContext.Current.CancellationToken);
+
+        Assert.Equal(VehicleCommandResult.Accepted, disarmResponse.Result);
+
+        await EventuallyAsync(
+            () =>
+            {
+                var state = vehicleService.GetVehicleState(vehicleId);
+                Assert.False(state.IsArmed);
+            },
+            TimeSpan.FromSeconds(5),
+            TestContext.Current.CancellationToken);
+    }
+
+
+    /// <summary>
+    /// Tests that the vehicle service correctly sets the vehicle mode to Guided when the command is acknowledged.
+    /// </summary>
+    [Fact]
+    public async Task Should_Set_Guided_Mode_Through_VehicleService_When_Command_Is_Acked()
     {
         var endpoint = serviceProvider.GetRequiredService<IOptions<TransportEndpoint>>().Value;
 
@@ -125,76 +189,7 @@ public class DomainVehicleServiceTests
         await EventuallyAsync(
             () =>
             {
-                var state = vehicleService.GetVehicle(vehicleId);
-                Assert.False(state.IsArmed);
-            },
-            TimeSpan.FromSeconds(5),
-            TestContext.Current.CancellationToken);
-
-        var armResponse = await vehicleService.ArmAsync(vehicleId, TestContext.Current.CancellationToken);
-
-        Assert.Equal(VehicleCommandResult.Accepted, armResponse.Result);
-
-        await EventuallyAsync(
-            () =>
-            {
-                var state = vehicleService.GetVehicle(vehicleId);
-                Assert.True(state.IsArmed);
-            },
-            TimeSpan.FromSeconds(5),
-            TestContext.Current.CancellationToken);
-
-        var disarmResponse = await vehicleService.DisarmAsync(vehicleId, TestContext.Current.CancellationToken);
-
-        Assert.Equal(VehicleCommandResult.Accepted, disarmResponse.Result);
-
-        await EventuallyAsync(
-            () =>
-            {
-                var state = vehicleService.GetVehicle(vehicleId);
-                Assert.False(state.IsArmed);
-            },
-            TimeSpan.FromSeconds(5),
-            TestContext.Current.CancellationToken);
-    }
-
-
-    /// <summary>
-    /// Tests that the vehicle service correctly sets the vehicle mode to Guided when the command is acknowledged.
-    /// </summary>
-    [Fact]
-    public async Task Should_Set_Guided_Mode_Through_VehicleService_When_Command_Is_Acked()
-    {
-        var endpoint = serviceProvider.GetRequiredService<IOptions<TransportEndpoint>>().Value;
-
-        var vehicleId = new VehicleId(1, 1);
-
-        await using var connection = serviceProvider.GetRequiredService<IMavLinkConnection>();
-
-        await using var vehicleService = serviceProvider.GetRequiredService<IVehicleService>();
-
-        var messagePump = serviceProvider.GetRequiredService<IVehicleMessagePump>();
-
-        await connection.StartAsync(TestContext.Current.CancellationToken);
-
-        var pumpTask = Task.Run(() => messagePump.StartAsync(TestContext.Current.CancellationToken), TestContext.Current.CancellationToken);
-
-        await using var simulator =
-            new FakeMavLinkVehicle2(
-                serviceProvider.GetRequiredService<IMavLinkFrameParser>(),
-                serviceProvider.GetRequiredService<IMavLinkCrcExtraProvider>(),
-                endpoint.LocalHost,
-                endpoint.LocalPort,
-                endpoint.RemotePort,
-                TimeSpan.FromMilliseconds(100)
-            );
-
-        await simulator.StartAsync(TestContext.Current.CancellationToken);
-
-        await EventuallyAsync(
-            () =>
-            {
-                var state = vehicleService.GetVehicle(vehicleId);
+                var state = vehicleService.GetVehicleState(vehicleId);
                 Assert.Equal(VehicleMode.Stabilize, state.Mode);
             },
             TimeSpan.FromSeconds(5),
@@ -207,7 +202,7 @@ public class DomainVehicleServiceTests
         await EventuallyAsync(
             () =>
             {
-                var state = vehicleService.GetVehicle(vehicleId);
+                var state = vehicleService.GetVehicleState(vehicleId);
                 Assert.True(state.IsArmed);
             },
             TimeSpan.FromSeconds(5),
@@ -230,7 +225,7 @@ public class DomainVehicleServiceTests
 
         await using var connection = serviceProvider.GetRequiredService<IMavLinkConnection>();
 
-        await using var vehicleService = serviceProvider.GetRequiredService<IVehicleService>();
+        var vehicleService = serviceProvider.GetRequiredService<IVehicleService>();
 
         var messagePump = serviceProvider.GetRequiredService<IVehicleMessagePump>();
 
@@ -253,7 +248,7 @@ public class DomainVehicleServiceTests
         await EventuallyAsync(
             () =>
             {
-                var state = vehicleService.GetVehicle(vehicleId);
+                var state = vehicleService.GetVehicleState(vehicleId);
                 Assert.Equal(vehicleId, state.VehicleId);
             },
             TimeSpan.FromSeconds(5),
@@ -276,7 +271,7 @@ public class DomainVehicleServiceTests
 
         await using var connection = serviceProvider.GetRequiredService<IMavLinkConnection>();
 
-        await using var vehicleService = serviceProvider.GetRequiredService<IVehicleService>();
+        var vehicleService = serviceProvider.GetRequiredService<IVehicleService>();
 
         var messagePump = serviceProvider.GetRequiredService<IVehicleMessagePump>();
 
@@ -298,7 +293,7 @@ public class DomainVehicleServiceTests
         await simulator.StartAsync(TestContext.Current.CancellationToken);
 
         await EventuallyAsync(
-            () => vehicleService.GetVehicle(vehicleId),
+            () => vehicleService.GetVehicleState(vehicleId),
             TimeSpan.FromSeconds(5),
             TestContext.Current.CancellationToken);
 
@@ -306,7 +301,7 @@ public class DomainVehicleServiceTests
 
         Assert.Equal(VehicleCommandResult.Denied, response.Result);
 
-        var state = vehicleService.GetVehicle(vehicleId);
+        var state = vehicleService.GetVehicleState(vehicleId);
         Assert.False(state.IsArmed);
     }
 
@@ -332,7 +327,7 @@ public class DomainVehicleServiceTests
             3,
             receivedAt);
 
-        registry.UpdateConnectionStates(DateTimeOffset.UtcNow, TimeSpan.FromSeconds(2), TimeSpan.FromSeconds(5));
+        registry.UpdateConnectionStates(DateTimeOffset.UtcNow, TimeSpan.FromSeconds(2), TimeSpan.FromSeconds(5), TimeSpan.FromSeconds(10));
 
         Assert.Equal(VehicleConnectionState.Offline, vehicle.Vehicle.State.ConnectionState);
         var response = await vehicleService.ArmAsync(vehicleId, TestContext.Current.CancellationToken);

@@ -27,21 +27,20 @@ public static class MavLinkConfigurator
         services.TryAddSingleton<IMavLinkClient, MavLinkClient>();
         services.TryAddSingleton<IMavLinkConnection, MavLinkConnection>();
 
-
-        services.TryAddSingleton<IMavLinkCrcExtraProvider, CommonMavLinkCrcExtraProvider>();
-        services.TryAddSingleton<IMavLinkFrameParser, MavLinkV2FrameParser>();
-        services.TryAddSingleton<IMavLinkCommandEncoder, MavLinkCommandEncoder>();
-        services.TryAddSingleton<IMavLinkMessageDecoder, MavLinkMessageDecoder>();
+        services.TryAddTransient<IMavLinkCrcExtraProvider, CommonMavLinkCrcExtraProvider>();
+        services.TryAddTransient<IMavLinkFrameParser, MavLinkV2FrameParser>();
+        services.TryAddTransient<IMavLinkCommandEncoder, MavLinkCommandEncoder>();
+        services.TryAddTransient<IMavLinkMessageDecoder, MavLinkMessageDecoder>();
 
         IList<IMavLinkMessageDecoder> decoders =
         [
+            new StatusTextMessageDecoder(),
             new HeartbeatMessageDecoder(),
             new CommandAckMessageDecoder(),
             new AttitudeMessageDecoder(),
             new GlobalPositionIntMessageDecoder(),
             new SysStatusMessageDecoder()
         ];
-
 
         services.TryAddSingleton(new MavLinkMessageDecoders(decoders));
 

@@ -1,23 +1,34 @@
 ﻿using DroneGcs.Core.DomainEvents;
 using DroneGcs.Core.Models;
 
+using Microsoft.Extensions.Logging;
+
 
 namespace DroneGcs.Core.Services;
 
 /// <summary>
 /// Manages the registration and state of vehicles.
 /// </summary>
-public sealed class VehicleRegistry(IDomainEventHub eventHub) : IVehicleRegistry
+public sealed class VehicleRegistry(IDomainEventHub eventHub, ILogger<VehicleRegistry> logger) : IVehicleRegistry
 {
     private readonly Dictionary<VehicleId, VehicleSession> vehicles = [];
 
     /// <inheritdoc />
-    public VehicleSession GetRequired(VehicleId vehicleId)
+    public VehicleSession? GetRequired(VehicleId vehicleId)
     {
-        return !vehicles.TryGetValue(vehicleId, out var vehicle)
-            ? throw new InvalidOperationException(
-                $"Vehicle '{vehicleId}' is not registered.")
-            : vehicle;
+        //return !vehicles.TryGetValue(vehicleId, out var vehicle)
+        //    ? throw new InvalidOperationException(
+        //        $"Vehicle '{vehicleId}' is not registered.")
+        //    : vehicle;
+
+        vehicles.TryGetValue(vehicleId, out var vehicle);
+        if (vehicle is null)
+        {
+            logger.LogWarning("Vehicle '{vehicleId}' is not registered.", vehicleId);
+            return null;
+        }
+
+        return vehicle;
     }
 
     /// <summary>
@@ -26,13 +37,13 @@ public sealed class VehicleRegistry(IDomainEventHub eventHub) : IVehicleRegistry
     public IReadOnlyCollection<VehicleSession> Vehicles => vehicles.Values.ToArray();
 
     /// <inheritdoc />
-    public VehicleUpdateConnectionStateResult UpdateConnectionStates(DateTimeOffset now, TimeSpan staleAfter, TimeSpan offlineAfter)
+    public VehicleUpdateConnectionStateResult UpdateConnectionStates(DateTimeOffset now, TimeSpan staleAfter, TimeSpan degradedAfter, TimeSpan offlineAfter)
     {
         var result = new List<VehicleSession>();
         foreach (var vehicle in vehicles.Values)
         {
             result.Add(vehicle);
-            var stateChanged = vehicle.UpdateConnectionState(now, staleAfter, offlineAfter);
+            var stateChanged = vehicle.UpdateConnectionState(now, staleAfter, degradedAfter, offlineAfter);
             eventHub.PublishDomainEvent(new VehicleStateUpdated(vehicle.State));
             if (stateChanged != null)
             {
@@ -40,6 +51,7 @@ public sealed class VehicleRegistry(IDomainEventHub eventHub) : IVehicleRegistry
             }
         }
 
+        logger.LogTrace("Updated connection states for {VehicleCount} vehicles.", vehicles.Count);
         return new VehicleUpdateConnectionStateResult(result);
     }
 
@@ -91,6 +103,7 @@ public sealed class VehicleRegistry(IDomainEventHub eventHub) : IVehicleRegistry
 
             session = new VehicleSession(state);
             vehicles.Add(vehicleId, session);
+            logger.LogTrace("Registered new vehicle: {VehicleId}", vehicleId);
         }
 
         session.ApplyHeartbeat(

@@ -97,10 +97,8 @@ public class TestOfDomainEventHub
     [Fact]
     public void Should_Publish_VehicleRegistered_When_First_Heartbeat_Is_Received()
     {
-        var logger = NSubstitute.Substitute.For<ILogger<EventHub>>();
-
-        var eventHub = new CapturingDomainEventHub(logger);
-        var registry = new VehicleRegistry(eventHub);
+        var eventHub = new CapturingDomainEventHub(NSubstitute.Substitute.For<ILogger<EventHub>>());
+        var registry = new VehicleRegistry(eventHub, NSubstitute.Substitute.For<ILogger<VehicleRegistry>>());
 
         registry.RegisterOrUpdateHeartbeat(
             new VehicleId(1, 1),

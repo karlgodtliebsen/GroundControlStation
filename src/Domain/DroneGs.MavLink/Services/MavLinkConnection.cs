@@ -8,12 +8,6 @@ using Microsoft.Extensions.Logging;
 
 namespace DroneGs.MavLink.Services;
 
-public static class MavLinkEventTopics
-{
-    public const string ReceivedMessage = "mavlink.received-message";
-    public const string ReceivedFrame = "mavlink.received-frame";
-}
-
 /// <summary>
 /// Represents a connection to a MAVLink device, managing the reception and decoding of MAVLink frames and messages.
 /// </summary>
@@ -52,7 +46,7 @@ public sealed class MavLinkConnection : IMavLinkConnection
     public async Task StartAsync(CancellationToken cancellationToken = default)
     {
         await client.StartAsync(cancellationToken).ConfigureAwait(false);
-        logger.LogDebug("MavLinkConnection - MAVLink connection started.");
+        logger.LogTrace("MavLinkConnection - MAVLink connection started.");
     }
 
 
@@ -63,24 +57,29 @@ public sealed class MavLinkConnection : IMavLinkConnection
     /// <param name="cancellationToken">A cancellation token to cancel the operation.</param>
     public async ValueTask SendRawAsync(ReadOnlyMemory<byte> data, CancellationToken cancellationToken = default)
     {
-        logger.LogDebug("MavLinkConnection - Sending raw MAVLink data.");
+        logger.LogTrace("MavLinkConnection - Sending raw MAVLink data.");
         await client.SendAsync(data, cancellationToken).ConfigureAwait(false);
     }
 
     private async Task OnDataReceivedAsync(MavLinkDataReceived received, CancellationToken cancellationToken)
     {
-        logger.LogDebug("MavLinkConnection - Data received at {ReceivedAt}", received.ReceivedAt);
+        logger.LogTrace("MavLinkConnection - Data received at {ReceivedAt}", received.ReceivedAt);
         var parsedFrames = frameParser.Parse(received.Data.Span, received.ReceivedAt);
 
         foreach (var frame in parsedFrames)
         {
-            // frames.Writer.TryWrite(frame);
+            logger.LogTrace("MavLinkConnection - Processing frame {frame}", frame.MessageId);
+
             await eventHub.PublishAsync(MavLinkEventTopics.ReceivedFrame, frame, cancellationToken);
             if (messageDecoder.TryDecode(frame, out var message) && message is not null)
             {
-                logger.LogDebug("MavLinkConnection - Writing Decoded Message { MessageType}", message.GetType().Name);
+                logger.LogTrace("MavLinkConnection - Writing Decoded Message { MessageType}", message.GetType().Name);
                 await eventHub.PublishAsync(MavLinkEventTopics.ReceivedMessage, message, cancellationToken);
                 return;
+            }
+            else
+            {
+                logger.LogError("MavLinkConnection - Failed to decode message from frame {frame}", frame.MessageId);
             }
         }
     }
@@ -90,12 +89,8 @@ public sealed class MavLinkConnection : IMavLinkConnection
     public async ValueTask DisposeAsync()
     {
         client.DataReceived -= OnDataReceivedAsync;
-
-        // frames.Writer.TryComplete();
-        //  messages.Writer.TryComplete();
-
         await client.DisposeAsync().ConfigureAwait(false);
         GC.SuppressFinalize(this);
-        logger.LogDebug("MavLinkConnection - MAVLink connection disposed.");
+        logger.LogTrace("MavLinkConnection - MAVLink connection disposed.");
     }
 }

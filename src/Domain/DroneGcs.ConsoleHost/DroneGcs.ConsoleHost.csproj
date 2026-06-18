@@ -8,6 +8,12 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <PackageReference Include="Polly" />
+    <PackageReference Include="Spectre.Console" />
+    <PackageReference Include="Spectre.Console.Cli" />
+  </ItemGroup>
+
+  <ItemGroup>
     <ProjectReference Include="..\..\Library\Domain.Library\Domain.Library.csproj" />
     <ProjectReference Include="..\DroneGcs.Core\DroneGcs.Core.csproj" />
     <ProjectReference Include="..\DroneGcs.Transport\DroneGcs.Transport.csproj" />
