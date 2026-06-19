@@ -1,7 +1,5 @@
 ﻿using Domain.Library.DateTime.Domain;
 
-using DroneGcs.Core.DomainEvents;
-
 namespace DroneGcs.Core.Services;
 
 /// <summary>
@@ -9,8 +7,7 @@ namespace DroneGcs.Core.Services;
 /// </summary>
 /// <param name="vehicleRegistry">The vehicle registry to monitor.</param>
 /// <param name="clock">The clock to use for time-based calculations.</param>
-/// <param name="eventHub">The event hub to publish domain events.</param>
-public sealed class VehicleConnectionMonitor(IVehicleRegistry vehicleRegistry, IDateTimeProvider clock, IDomainEventHub eventHub) : IVehicleConnectionMonitor
+public sealed class VehicleConnectionMonitor(IVehicleRegistry vehicleRegistry, IDateTimeProvider clock) : IVehicleConnectionMonitor
 {
     private static readonly TimeSpan StaleAfter = TimeSpan.FromSeconds(2);
     private static readonly TimeSpan DegradedAfter = TimeSpan.FromSeconds(5);

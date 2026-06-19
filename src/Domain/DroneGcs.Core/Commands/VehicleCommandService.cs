@@ -1,5 +1,6 @@
 ﻿using Domain.Library.DateTime.Domain;
 
+using DroneGcs.Core.DomainEvents;
 using DroneGcs.Core.Models;
 using DroneGcs.Core.Services;
 
@@ -16,6 +17,7 @@ namespace DroneGcs.Core.Commands;
 /// </summary>
 public sealed class VehicleCommandService(
     IVehicleRegistry registry,
+    IDomainEventHub eventHub,
     IMavLinkConnection connection,
     IMavLinkCommandEncoder encoder,
     ICommandAckTracker commandAckTracker,
@@ -44,16 +46,37 @@ public sealed class VehicleCommandService(
     public async Task<VehicleCommandResponse> ArmAsync(VehicleId vehicleId, CancellationToken cancellationToken)
     {
         var validation = ValidateCanCommand(vehicleId);
+        if (validation is not null)
+        {
+            return validation;
+        }
 
-        return validation ?? await SendArmDisarmAsync(vehicleId, true, cancellationToken);
+        var result = await SendArmDisarmAsync(vehicleId, true, cancellationToken);
+
+        if (result.Result == VehicleCommandResult.Accepted)
+        {
+            await eventHub.PublishDomainEventAsync(new VehicleArmed(vehicleId), cancellationToken);
+        }
+
+        return result;
     }
 
     /// <inheritdoc />
     public async Task<VehicleCommandResponse> DisarmAsync(VehicleId vehicleId, CancellationToken cancellationToken)
     {
         var validation = ValidateCanCommand(vehicleId);
+        if (validation is not null)
+        {
+            return validation;
+        }
 
-        return validation ?? await SendArmDisarmAsync(vehicleId, false, cancellationToken);
+        var result = await SendArmDisarmAsync(vehicleId, false, cancellationToken);
+        if (result.Result == VehicleCommandResult.Accepted)
+        {
+            await eventHub.PublishDomainEventAsync(new VehicleDisarmed(vehicleId), cancellationToken);
+        }
+
+        return result;
     }
 
     /// <inheritdoc />
@@ -84,12 +107,12 @@ public sealed class VehicleCommandService(
         try
         {
             var ack = await waitForAckTask.ConfigureAwait(false);
-
+            await eventHub.PublishDomainEventAsync(new VehicleModeChanged((vehicleId, mode, dateTimeProvider.UtcNow)), cancellationToken);
             return new VehicleCommandResponse(vehicleId, MapResult(ack.Result), ack.ReceivedAt);
         }
         catch (TimeoutException)
         {
-            return new VehicleCommandResponse(vehicleId, VehicleCommandResult.Timeout, DateTimeOffset.UtcNow);
+            return new VehicleCommandResponse(vehicleId, VehicleCommandResult.Timeout, dateTimeProvider.UtcNow);
         }
     }
 

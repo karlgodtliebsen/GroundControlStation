@@ -16,11 +16,6 @@ public sealed class VehicleRegistry(IDomainEventHub eventHub, ILogger<VehicleReg
     /// <inheritdoc />
     public VehicleSession? GetRequired(VehicleId vehicleId)
     {
-        //return !vehicles.TryGetValue(vehicleId, out var vehicle)
-        //    ? throw new InvalidOperationException(
-        //        $"Vehicle '{vehicleId}' is not registered.")
-        //    : vehicle;
-
         vehicles.TryGetValue(vehicleId, out var vehicle);
         if (vehicle is null)
         {
@@ -45,7 +40,7 @@ public sealed class VehicleRegistry(IDomainEventHub eventHub, ILogger<VehicleReg
             result.Add(vehicle);
             var stateChanged = vehicle.UpdateConnectionState(now, staleAfter, degradedAfter, offlineAfter);
             eventHub.PublishDomainEvent(new VehicleStateUpdated(vehicle.State));
-            if (stateChanged != null)
+            if (stateChanged is not null)
             {
                 eventHub.PublishDomainEvent(stateChanged);
             }

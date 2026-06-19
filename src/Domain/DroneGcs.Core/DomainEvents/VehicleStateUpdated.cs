@@ -1,4 +1,5 @@
 ﻿using Domain.Library.EventHub.Events;
+
 using DroneGcs.Core.Models;
 
 namespace DroneGcs.Core.DomainEvents;

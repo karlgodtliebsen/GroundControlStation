@@ -266,6 +266,148 @@ public class SmokeTestsSitl : IAsyncLifetime
         vehicle.Mode.Should().Be(VehicleMode.Guided);
     }
 
+
+    /// <summary>
+    /// Registers a vehicle from the SITL heartbeat message and sends a set mode command to guided.
+    /// </summary>
+    [Fact]
+    public async Task Should_Set_Guided_Mode_Through_SITL_Extended()
+    {
+        var logger = serviceProvider.GetRequiredService<ILogger<SmokeTestsSitl>>();
+        var vehicleService = serviceProvider.GetRequiredService<IVehicleService>();
+
+        VehicleState? vehicle = null!;
+
+        await EventuallyAsync(
+            () =>
+            {
+                vehicle = vehicleService.GetVehicles().First();
+                Assert.Equal(VehicleConnectionState.Online, vehicle.ConnectionState);
+            },
+            TimeSpan.FromSeconds(10),
+            TestContext.Current.CancellationToken);
+
+        var armResponse = await vehicleService.ArmAsync(vehicle.VehicleId, TestContext.Current.CancellationToken);
+
+        logger.LogTrace("Arm response: Vehicle={VehicleId}, Result={Result}", armResponse.VehicleId, armResponse.Result);
+
+        Assert.Equal(VehicleCommandResult.Accepted, armResponse.Result);
+
+        await EventuallyAsync(
+            () =>
+            {
+                vehicle = vehicleService.GetVehicleState(vehicle.VehicleId);
+                DomainException.ThrowIfNull(vehicle);
+                Assert.True(vehicle.IsArmed);
+            },
+            TimeSpan.FromSeconds(10),
+            TestContext.Current.CancellationToken);
+
+        var modeResponse = await vehicleService.SetModeAsync(vehicle.VehicleId, VehicleMode.Guided, TestContext.Current.CancellationToken);
+
+        logger.LogTrace("Set mode response: Vehicle={VehicleId}, Result={Result}", modeResponse.VehicleId, modeResponse.Result);
+
+        Assert.Equal(VehicleCommandResult.Accepted, modeResponse.Result);
+
+        await EventuallyAsync(
+            () =>
+            {
+                vehicle = vehicleService.GetVehicleState(vehicle.VehicleId);
+                DomainException.ThrowIfNull(vehicle);
+                Assert.True(vehicle.IsArmed);
+                Assert.Equal(VehicleMode.Guided, vehicle.Mode);
+            },
+            TimeSpan.FromSeconds(10),
+            TestContext.Current.CancellationToken);
+
+        modeResponse = await vehicleService.SetModeAsync(vehicle.VehicleId, VehicleMode.AltHold, TestContext.Current.CancellationToken);
+
+        logger.LogTrace("Set mode response: Vehicle={VehicleId}, Result={Result}", modeResponse.VehicleId, modeResponse.Result);
+
+        Assert.Equal(VehicleCommandResult.Accepted, modeResponse.Result);
+
+        await EventuallyAsync(
+            () =>
+            {
+                vehicle = vehicleService.GetVehicleState(vehicle.VehicleId);
+                DomainException.ThrowIfNull(vehicle);
+                Assert.True(vehicle.IsArmed);
+                Assert.Equal(VehicleMode.AltHold, vehicle.Mode);
+            },
+            TimeSpan.FromSeconds(10),
+            TestContext.Current.CancellationToken);
+
+        modeResponse = await vehicleService.SetModeAsync(vehicle.VehicleId, VehicleMode.Land, TestContext.Current.CancellationToken);
+
+        logger.LogTrace("Set mode response: Vehicle={VehicleId}, Result={Result}", modeResponse.VehicleId, modeResponse.Result);
+
+        Assert.Equal(VehicleCommandResult.Accepted, modeResponse.Result);
+
+        await EventuallyAsync(
+            () =>
+            {
+                vehicle = vehicleService.GetVehicleState(vehicle.VehicleId);
+                DomainException.ThrowIfNull(vehicle);
+                Assert.True(vehicle.IsArmed);
+                Assert.Equal(VehicleMode.Land, vehicle.Mode);
+            },
+            TimeSpan.FromSeconds(10),
+            TestContext.Current.CancellationToken);
+
+        modeResponse = await vehicleService.SetModeAsync(vehicle.VehicleId, VehicleMode.Stabilize, TestContext.Current.CancellationToken);
+
+        logger.LogTrace("Set mode response: Vehicle={VehicleId}, Result={Result}", modeResponse.VehicleId, modeResponse.Result);
+
+        Assert.Equal(VehicleCommandResult.Accepted, modeResponse.Result);
+
+        await EventuallyAsync(
+            () =>
+            {
+                vehicle = vehicleService.GetVehicleState(vehicle.VehicleId);
+                DomainException.ThrowIfNull(vehicle);
+                Assert.True(vehicle.IsArmed);
+                Assert.Equal(VehicleMode.Stabilize, vehicle.Mode);
+            },
+            TimeSpan.FromSeconds(10),
+            TestContext.Current.CancellationToken);
+
+
+        modeResponse = await vehicleService.SetModeAsync(vehicle.VehicleId, VehicleMode.Loiter, TestContext.Current.CancellationToken);
+
+        logger.LogTrace("Set mode response: Vehicle={VehicleId}, Result={Result}", modeResponse.VehicleId, modeResponse.Result);
+
+        Assert.Equal(VehicleCommandResult.Accepted, modeResponse.Result);
+
+        await EventuallyAsync(
+            () =>
+            {
+                vehicle = vehicleService.GetVehicleState(vehicle.VehicleId);
+                DomainException.ThrowIfNull(vehicle);
+                Assert.True(vehicle.IsArmed);
+                Assert.Equal(VehicleMode.Loiter, vehicle.Mode);
+            },
+            TimeSpan.FromSeconds(10),
+            TestContext.Current.CancellationToken);
+
+        modeResponse = await vehicleService.SetModeAsync(vehicle.VehicleId, VehicleMode.Rtl, TestContext.Current.CancellationToken);
+
+        logger.LogTrace("Set mode response: Vehicle={VehicleId}, Result={Result}", modeResponse.VehicleId, modeResponse.Result);
+
+        Assert.Equal(VehicleCommandResult.Accepted, modeResponse.Result);
+
+        await EventuallyAsync(
+            () =>
+            {
+                vehicle = vehicleService.GetVehicleState(vehicle.VehicleId);
+                DomainException.ThrowIfNull(vehicle);
+                Assert.True(vehicle.IsArmed);
+                Assert.Equal(VehicleMode.Rtl, vehicle.Mode);
+            },
+            TimeSpan.FromSeconds(10),
+            TestContext.Current.CancellationToken);
+    }
+
+
     /// <summary>
     /// Registers a vehicle from the SITL heartbeat message and sends a set mode command to stabilize.
     /// </summary>
@@ -416,6 +558,7 @@ public class SmokeTestsSitl : IAsyncLifetime
         var notifications = vehicleService.GetVehicleNotifications(testVehicle.VehicleId);
         notifications.Count.Should().Be(1);
     }
+
 
     private async Task<VehicleState> WaitForRegisteredVehicle()
     {

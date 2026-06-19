@@ -2,6 +2,7 @@
 using DroneGcs.Core.Services;
 using DroneGcs.Simulator;
 using DroneGcs.Test.Configuration;
+
 using Microsoft.Extensions.DependencyInjection;
 
 namespace DroneGcs.Test;
@@ -27,6 +28,25 @@ public class DomainVehiclesTests
 
         serviceProvider = services.BuildServiceProvider();
         serviceProvider.UseTestConfiguration();
+    }
+
+    /// <summary>
+    /// Maps a <see cref="VehicleMode"/> to the corresponding ArduCopter custom mode.
+    /// </summary>
+    /// <param name="mode">The vehicle mode to map.</param>
+    /// <param name="expected">The expected ArduCopter custom mode value.</param>
+    [Theory]
+    [InlineData(VehicleMode.Stabilize, 0u)]
+    [InlineData(VehicleMode.AltHold, 2u)]
+    [InlineData(VehicleMode.Guided, 4u)]
+    [InlineData(VehicleMode.Loiter, 5u)]
+    [InlineData(VehicleMode.Rtl, 6u)]
+    [InlineData(VehicleMode.Land, 9u)]
+    public void Should_Map_VehicleMode_To_ArduCopter_CustomMode(VehicleMode mode, uint expected)
+    {
+        var actual = ArduCopterModeMapper.ToCustomMode(mode);
+
+        Assert.Equal(expected, actual);
     }
 
     /// <summary>

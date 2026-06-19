@@ -21,3 +21,20 @@ public class VehicleConnectionStateChanged : DomainEvent<(VehicleId VehicleId, V
     {
     }
 }
+
+
+//public sealed class VehicleConnectionStateProjection
+//{
+//    public async Task Handle(VehicleConnectionStateChanged domainEvent, CancellationToken cancellationToken)
+//    {
+//        if (domainEvent.NewState == VehicleConnectionState.Online)
+//        {
+//            await eventHub.PublishAsync(nameof(VehicleConnected), new VehicleConnected(domainEvent.VehicleId, domainEvent.OccurredAt), cancellationToken);
+//        }
+
+//        if (domainEvent.NewState == VehicleConnectionState.Offline)
+//        {
+//            await eventHub.PublishAsync(nameof(VehicleDisconnected), new VehicleDisconnected(domainEvent.VehicleId, domainEvent.OccurredAt), cancellationToken);
+//        }
+//    }
+//}
