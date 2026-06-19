@@ -137,6 +137,11 @@ public class CommandWorkerService(IVehicleService vehicleService, CommandOutputB
         }
 
         var vehicleState = vehicleService.GetVehicleState(vehicleId);
+        if (vehicleState is null)
+        {
+            return;
+        }
+
         commandOutputBuffer.Add($"Vehicle: {Format(vehicleState.VehicleId)}");
         commandOutputBuffer.Add($"Connection: {vehicleState.ConnectionState}");
         commandOutputBuffer.Add($"Mode: {vehicleState.Mode}");
@@ -161,7 +166,6 @@ public class CommandWorkerService(IVehicleService vehicleService, CommandOutputB
         }
 
         var response = await vehicleService.ArmAsync(vehicleId, cancellationToken);
-
         commandOutputBuffer.Add($"Arm result: {response.Result}");
     }
 

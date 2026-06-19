@@ -59,9 +59,13 @@ public class SmokeTestsSitl : IAsyncLifetime
         logger.LogInformation($"Test configuration initialized. UDP remote: {endPoint.Value.RemoteHost}:{endPoint.Value.RemotePort}");
     }
 
+    private VehicleId vehicleId;
+
     /// <inheritdoc />
     public async ValueTask DisposeAsync()
     {
+        var vehicleService = serviceProvider.GetRequiredService<IVehicleService>();
+        await ResetSitlVehicleAsync(vehicleService, CancellationToken.None);
         await connection.DisposeAsync();
         await messagePump.DisposeAsync();
     }
@@ -70,17 +74,82 @@ public class SmokeTestsSitl : IAsyncLifetime
     private IVehicleMessagePump messagePump;
 
     /// <inheritdoc />
-    public ValueTask InitializeAsync()
+    public async ValueTask InitializeAsync()
     {
         connection = serviceProvider.GetRequiredService<IMavLinkConnection>();
         messagePump = serviceProvider.GetRequiredService<IVehicleMessagePump>();
+        var vehicleService = serviceProvider.GetRequiredService<IVehicleService>();
 
         var conn = connection;
         var mp = messagePump;
         _ = Task.Run(() => conn.StartAsync(TestContext.Current.CancellationToken), TestContext.Current.CancellationToken);
         _ = Task.Run(() => mp.StartAsync(TestContext.Current.CancellationToken), TestContext.Current.CancellationToken);
 
-        return ValueTask.CompletedTask;
+        vehicleId = new VehicleId(1, 1);
+        await ResetSitlVehicleAsync(vehicleService, TestContext.Current.CancellationToken);
+    }
+
+    private async Task ResetSitlVehicleAsync(IVehicleService vehicleService, CancellationToken cancellationToken)
+    {
+        var logger = serviceProvider.GetRequiredService<ILogger<SmokeTestsSitl>>();
+
+        await EventuallyAsync(
+            () =>
+            {
+                var vehicles = vehicleService.GetVehicles();
+
+                logger.LogTrace("Vehicle count: {VehicleCount}", vehicles.Count);
+
+                Assert.NotEmpty(vehicles);
+
+                var vehicle = vehicles.First();
+
+                logger.LogTrace("Vehicle: {VehicleId}, State: {ConnectionState}, Mode: {Mode}", vehicle.VehicleId, vehicle.ConnectionState, vehicle.Mode);
+
+                Assert.Equal(VehicleConnectionState.Online, vehicle.ConnectionState);
+            },
+            TimeSpan.FromSeconds(10),
+            cancellationToken);
+
+        var current = vehicleService.GetVehicleState(vehicleId);
+        if (current is not null)
+        {
+            if (current.IsArmed)
+            {
+                var disarmResponse = await vehicleService.DisarmAsync(vehicleId, cancellationToken);
+
+                Assert.Equal(VehicleCommandResult.Accepted, disarmResponse.Result);
+
+                await EventuallyAsync(
+                    () =>
+                    {
+                        var vehicle = vehicleService.GetVehicleState(vehicleId);
+                        if (vehicle is not null)
+                        {
+                            Assert.False(vehicle.IsArmed);
+                        }
+                    },
+                    TimeSpan.FromSeconds(10),
+                    cancellationToken);
+            }
+        }
+
+        var modeResponse = await vehicleService.SetModeAsync(vehicleId, VehicleMode.Stabilize, cancellationToken);
+
+        Assert.Equal(VehicleCommandResult.Accepted, modeResponse.Result);
+
+        await EventuallyAsync(
+            () =>
+            {
+                var vehicle = vehicleService.GetVehicleState(vehicleId);
+                if (vehicle is not null)
+                {
+                    Assert.Equal(VehicleMode.Stabilize, vehicle.Mode);
+                    Assert.Equal(VehicleConnectionState.Online, vehicle.ConnectionState);
+                }
+            },
+            TimeSpan.FromSeconds(10),
+            cancellationToken);
     }
 
     /// <summary>
