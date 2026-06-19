@@ -1,4 +1,4 @@
-﻿namespace DroneGcs.ConsoleHost.Configuration;
+﻿namespace DroneGcs.ConsoleHost.Dashboard;
 
 public sealed class LoggingOutputBuffer : ConsoleLineBuffer
 {

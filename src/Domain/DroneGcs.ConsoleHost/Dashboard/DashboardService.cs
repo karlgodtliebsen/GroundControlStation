@@ -5,7 +5,7 @@ using Microsoft.Extensions.Hosting;
 using Spectre.Console;
 using Spectre.Console.Rendering;
 
-namespace DroneGcs.ConsoleHost.Configuration;
+namespace DroneGcs.ConsoleHost.Dashboard;
 
 /// <summary>
 /// A background service that displays a dashboard with vehicle and log information.
@@ -13,7 +13,8 @@ namespace DroneGcs.ConsoleHost.Configuration;
 /// <param name="vehicleService">The service providing vehicle information.</param>
 /// <param name="loggingOutputBuffer">The buffer containing log entries.</param>
 /// <param name="commandOutputBuffer">The buffer containing command output.</param>
-public sealed class DashboardService(IVehicleService vehicleService, LoggingOutputBuffer loggingOutputBuffer, CommandOutputBuffer commandOutputBuffer) : BackgroundService
+/// <param name="monitorOutputBuffer">The buffer containing monitor output.</param>
+public sealed class DashboardService(IVehicleService vehicleService, LoggingOutputBuffer loggingOutputBuffer, CommandOutputBuffer commandOutputBuffer, MonitorOutputBuffer monitorOutputBuffer) : BackgroundService
 {
     /// <summary>
     /// 
@@ -50,28 +51,19 @@ public sealed class DashboardService(IVehicleService vehicleService, LoggingOutp
     }
 
 
-    private Panel BuildCommandOutputPanel()
-    {
-        var text = string.Join(
-            Environment.NewLine,
-            commandOutputBuffer.GetLines().TakeLast(15));
-
-        return new Panel(Markup.Escape(text))
-        {
-            Header = new PanelHeader("Command Output")
-        };
-    }
-
     private IRenderable BuildDashboard()
     {
         var grid = new Grid();
 
         grid.AddColumn();
         grid.AddColumn();
+        grid.AddColumn();
 
         grid.AddRow(
             BuildVehiclePanel(),
-            BuildCommandOutputPanel());
+            BuildCommandOutputPanel(),
+            BuildDomainEventPanel()
+        );
 
         grid.AddRow(
             new Panel(BuildLogTable())
@@ -86,6 +78,25 @@ public sealed class DashboardService(IVehicleService vehicleService, LoggingOutp
         return grid;
     }
 
+    private Panel BuildCommandOutputPanel()
+    {
+        var text = string.Join(Environment.NewLine, commandOutputBuffer.GetLines().TakeLast(15));
+
+        return new Panel(Markup.Escape(text))
+        {
+            Header = new PanelHeader("Command Output")
+        };
+    }
+
+    private Panel BuildDomainEventPanel()
+    {
+        var text = string.Join(Environment.NewLine, monitorOutputBuffer.GetLines().TakeLast(15));
+
+        return new Panel(Markup.Escape(text))
+        {
+            Header = new PanelHeader("Domain Events")
+        };
+    }
 
     private Panel BuildVehiclePanel()
     {

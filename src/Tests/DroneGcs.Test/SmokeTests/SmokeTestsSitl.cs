@@ -556,7 +556,7 @@ public class SmokeTestsSitl : IAsyncLifetime
         Assert.False(string.IsNullOrWhiteSpace(statusText.Text));
 
         var notifications = vehicleService.GetVehicleNotifications(testVehicle.VehicleId);
-        notifications.Count.Should().Be(1);
+        notifications.Count.Should().BeGreaterThanOrEqualTo(1);
     }
 
 

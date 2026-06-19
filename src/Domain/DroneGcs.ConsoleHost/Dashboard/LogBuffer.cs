@@ -1,4 +1,4 @@
-﻿namespace DroneGcs.ConsoleHost.Configuration;
+﻿namespace DroneGcs.ConsoleHost.Dashboard;
 
 /// <summary>
 /// 
@@ -15,10 +15,7 @@ public sealed class LogBuffer
         {
             entries.Enqueue(message);
 
-            while (entries.Count > 20)
-            {
-                entries.Dequeue();
-            }
+            while (entries.Count > 20) entries.Dequeue();
         }
     }
 

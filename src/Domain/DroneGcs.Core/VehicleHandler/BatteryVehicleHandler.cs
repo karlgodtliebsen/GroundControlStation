@@ -8,16 +8,16 @@ using Microsoft.Extensions.Logging;
 namespace DroneGcs.Core.VehicleHandler;
 
 /// <inheritdoc />
-public sealed record BatteryVehicleHandler(IVehicleRegistry VehicleRegistry, ILogger<BatteryVehicleHandler> Logger) : IBatteryVehicleHandler
+public sealed class BatteryVehicleHandler(IVehicleRegistry vehicleRegistry, ILogger<BatteryVehicleHandler> logger) : IBatteryVehicleHandler
 {
     /// <inheritdoc />
     public void Handle(SysStatusMessage message)
     {
         var vehicleId = new VehicleId(message.SystemId, message.ComponentId);
 
-        Logger.LogTrace("Handling battery status message from vehicle {VehicleId}", vehicleId);
-        var vehicle = VehicleRegistry.GetRequired(vehicleId);
+        logger.LogTrace("Handling battery status message from vehicle {VehicleId}", vehicleId);
+        var vehicle = vehicleRegistry.GetRequired(vehicleId);
 
-        vehicle.ApplyBattery(message.BatteryRemaining, message.BatteryVoltage);
+        vehicle?.ApplyBattery(message.BatteryRemaining, message.BatteryVoltage);
     }
 }

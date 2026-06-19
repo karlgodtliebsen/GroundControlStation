@@ -9,6 +9,7 @@ public enum VehicleCommandResult
     TemporarilyRejected = 1,
     Denied = 2,
     Unsupported = 3,
-    Failed = 4,
+    VehicleNotFound = 4,
+    Failed = 5,
     Timeout = 100
 }

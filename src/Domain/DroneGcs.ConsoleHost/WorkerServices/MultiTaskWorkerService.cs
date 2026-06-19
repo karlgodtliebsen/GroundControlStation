@@ -3,7 +3,7 @@ using DroneGcs.Core.Services;
 using DroneGs.MavLink.Services;
 using Microsoft.Extensions.Logging;
 
-namespace DroneGcs.ConsoleHost;
+namespace DroneGcs.ConsoleHost.WorkerServices;
 
 /// <inheritdoc />
 public class MultiTaskWorkerService(IMavLinkConnection connection, IVehicleMessagePump messagePump, ILogger<MultiTaskWorkerService> logger)

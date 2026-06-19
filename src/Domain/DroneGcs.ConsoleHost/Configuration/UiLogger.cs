@@ -1,4 +1,6 @@
-﻿using Microsoft.Extensions.Logging;
+﻿using DroneGcs.ConsoleHost.Dashboard;
+
+using Microsoft.Extensions.Logging;
 
 namespace DroneGcs.ConsoleHost.Configuration;
 

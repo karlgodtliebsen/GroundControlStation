@@ -1,11 +1,8 @@
 ﻿using Microsoft.Extensions.Logging;
 
-namespace DroneGcs.ConsoleHost.Configuration;
+namespace DroneGcs.ConsoleHost.Dashboard;
 
-public sealed class BufferedLogger(
-    string categoryName,
-    LoggingOutputBuffer buffer)
-    : ILogger
+public sealed class BufferedLogger(string categoryName, LoggingOutputBuffer buffer) : ILogger
 {
     public IDisposable? BeginScope<TState>(TState state)
         where TState : notnull
@@ -25,18 +22,27 @@ public sealed class BufferedLogger(
         Exception? exception,
         Func<TState, Exception?, string> formatter)
     {
-        if (!IsEnabled(logLevel)) return;
+        if (!IsEnabled(logLevel))
+        {
+            return;
+        }
 
         var message = formatter(state, exception);
 
-        if (string.IsNullOrWhiteSpace(message)) return;
+        if (string.IsNullOrWhiteSpace(message))
+        {
+            return;
+        }
 
         var category = ShortenCategory(categoryName);
 
         buffer.Add(
             $"[{DateTimeOffset.Now:HH:mm:ss}] {logLevel,-11} {category}: {message}");
 
-        if (exception is not null) buffer.Add(exception.ToString());
+        if (exception is not null)
+        {
+            buffer.Add(exception.ToString());
+        }
     }
 
     private static string ShortenCategory(string category)

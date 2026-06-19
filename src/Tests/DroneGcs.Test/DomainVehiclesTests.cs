@@ -109,10 +109,11 @@ public class DomainVehiclesTests
     /// 
     /// </summary>
     [Fact]
-    public void Should_Throw_When_Getting_Unknown_Vehicle()
+    public void Should_Return_Null_When_Getting_Unknown_Vehicle()
     {
         var vehicleService = serviceProvider.GetRequiredService<IVehicleService>();
 
-        Assert.Throws<InvalidOperationException>(() => vehicleService.GetVehicleState(new VehicleId(99, 1)));
+        var vehicle = vehicleService.GetVehicleState(new VehicleId(99, 1));
+        Assert.Null(vehicle);
     }
 }

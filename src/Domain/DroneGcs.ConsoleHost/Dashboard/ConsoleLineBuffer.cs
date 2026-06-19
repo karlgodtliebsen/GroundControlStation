@@ -1,5 +1,8 @@
-﻿namespace DroneGcs.ConsoleHost.Configuration;
+﻿namespace DroneGcs.ConsoleHost.Dashboard;
 
+/// <summary>
+/// 
+/// </summary>
 public class ConsoleLineBuffer
 {
     private readonly object syncRoot = new();
@@ -18,7 +21,10 @@ public class ConsoleLineBuffer
         {
             lines.Enqueue(line);
 
-            while (lines.Count > Capacity) lines.Dequeue();
+            while (lines.Count > Capacity)
+            {
+                lines.Dequeue();
+            }
         }
     }
 

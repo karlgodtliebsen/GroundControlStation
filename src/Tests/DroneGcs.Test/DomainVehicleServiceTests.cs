@@ -1,13 +1,19 @@
-﻿using DroneGcs.Core.Commands;
+﻿using Domain.Library;
+
+using DroneGcs.Core.Commands;
 using DroneGcs.Core.Models;
 using DroneGcs.Core.Services;
 using DroneGcs.Simulator;
 using DroneGcs.Test.Configuration;
+using DroneGcs.Test.SmokeTests;
 using DroneGcs.Transport;
 
 using DroneGs.MavLink.Services;
 
+using FluentAssertions;
+
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 
 namespace DroneGcs.Test;
@@ -297,6 +303,8 @@ public class DomainVehicleServiceTests
             TimeSpan.FromSeconds(5),
             TestContext.Current.CancellationToken);
 
+        var testVehicle = await WaitForRegisteredVehicle();
+
         var response = await vehicleService.ArmAsync(vehicleId, TestContext.Current.CancellationToken);
 
         Assert.Equal(VehicleCommandResult.Denied, response.Result);
@@ -358,6 +366,33 @@ public class DomainVehicleServiceTests
         var response = await vehicleService.SetModeAsync(vehicleId, VehicleMode.Guided, TestContext.Current.CancellationToken);
 
         Assert.Equal(VehicleCommandResult.Denied, response.Result);
+    }
+
+    private async Task<VehicleState> WaitForRegisteredVehicle()
+    {
+        var logger = serviceProvider.GetRequiredService<ILogger<SmokeTestsSitl>>();
+
+        var vehicleService = serviceProvider.GetRequiredService<IVehicleService>();
+        TaskCompletionSource ts = new(TaskCreationOptions.RunContinuationsAsynchronously);
+        VehicleState? testVehicle = null;
+        await EventuallyAsync(
+            () =>
+            {
+                var vehicles = vehicleService.GetVehicles();
+                Assert.NotEmpty(vehicles);
+                testVehicle = vehicles.First();
+                logger.LogTrace("Vehicle: {VehicleId}, State: {ConnectionState}, Mode: {Mode}", testVehicle.VehicleId, testVehicle.ConnectionState, testVehicle.Mode);
+                Assert.Equal(VehicleConnectionState.Online, testVehicle.ConnectionState);
+                ts.TrySetResult();
+            },
+            TimeSpan.FromSeconds(5),
+            TestContext.Current.CancellationToken);
+
+        await ts.Task.WaitAsync(TimeSpan.FromSeconds(5), TestContext.Current.CancellationToken);
+        testVehicle.Should().NotBeNull();
+        DomainException.ThrowIfNull(testVehicle);
+
+        return testVehicle!;
     }
 
     private static async Task EventuallyAsync(Action assertion, TimeSpan timeout, CancellationToken cancellationToken)

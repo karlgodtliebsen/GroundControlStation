@@ -51,7 +51,7 @@ public sealed class VehicleService(IVehicleRegistry registry, IVehicleCommandSer
         if (result.Result == VehicleCommandResult.Accepted)
         {
             var vehicle = registry.GetRequired(vehicleId);
-            vehicle.ApplyArm(true);
+            vehicle!.ApplyArm(true);
         }
 
         return result;
@@ -65,7 +65,7 @@ public sealed class VehicleService(IVehicleRegistry registry, IVehicleCommandSer
         if (result.Result == VehicleCommandResult.Accepted)
         {
             var vehicle = registry.GetRequired(vehicleId);
-            vehicle.ApplyArm(false);
+            vehicle!.ApplyArm(false);
         }
 
         return result;
@@ -80,7 +80,7 @@ public sealed class VehicleService(IVehicleRegistry registry, IVehicleCommandSer
         if (result.Result == VehicleCommandResult.Accepted)
         {
             var vehicle = registry.GetRequired(vehicleId);
-            vehicle.ApplyMode(mode);
+            vehicle!.ApplyMode(mode);
         }
 
         return result;

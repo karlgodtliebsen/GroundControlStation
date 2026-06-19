@@ -1,10 +1,8 @@
 ﻿using Microsoft.Extensions.Logging;
 
-namespace DroneGcs.ConsoleHost.Configuration;
+namespace DroneGcs.ConsoleHost.Dashboard;
 
-public sealed class BufferedLoggerProvider(
-    LoggingOutputBuffer buffer)
-    : ILoggerProvider
+public sealed class BufferedLoggerProvider(LoggingOutputBuffer buffer) : ILoggerProvider
 {
     public ILogger CreateLogger(string categoryName)
     {

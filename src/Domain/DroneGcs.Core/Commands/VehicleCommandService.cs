@@ -31,6 +31,11 @@ public sealed class VehicleCommandService(
     private VehicleCommandResponse? ValidateCanSetMode(VehicleId vehicleId, VehicleMode mode)
     {
         var vehicle = registry.GetRequired(vehicleId);
+        if (vehicle is null)
+        {
+            return new VehicleCommandResponse(vehicleId, VehicleCommandResult.VehicleNotFound, dateTimeProvider.UtcNow);
+        }
+
         var validation = commandPolicy.ValidateSetMode(vehicle.State, mode);
         return validation;
     }
@@ -38,6 +43,11 @@ public sealed class VehicleCommandService(
     private VehicleCommandResponse? ValidateCanCommand(VehicleId vehicleId)
     {
         var vehicle = registry.GetRequired(vehicleId);
+        if (vehicle is null)
+        {
+            return new VehicleCommandResponse(vehicleId, VehicleCommandResult.VehicleNotFound, dateTimeProvider.UtcNow);
+        }
+
         var validation = commandPolicy.ValidateArm(vehicle.State);
         return validation;
     }

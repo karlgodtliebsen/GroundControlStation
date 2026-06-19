@@ -1,17 +1,16 @@
-﻿using DroneGcs.ConsoleHost.Configuration;
-using DroneGcs.ConsoleHost.HostingLibraries.Abstractions;
+﻿using DroneGcs.ConsoleHost.Dashboard;
 using DroneGcs.Core.Models;
 using DroneGcs.Core.Services;
 
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 
-namespace DroneGcs.ConsoleHost;
+namespace DroneGcs.ConsoleHost.WorkerServices;
 
 /// <summary>
 /// A worker service that can run a single task.
 /// </summary>
-public class CommandWorkerService(IVehicleService vehicleService, CommandOutputBuffer commandOutputBuffer, IHostApplicationLifetime lifetime, ILogger<CommandWorkerService> logger) : ISingleTaskWorkerService
+public class CommandWorkerService(IVehicleService vehicleService, CommandOutputBuffer commandOutputBuffer, IHostApplicationLifetime lifetime, ILogger<CommandWorkerService> logger) : ICommandWorkerService
 {
     /// <inheritdoc />
     public async Task Run(CancellationToken stoppingToken)

@@ -19,9 +19,9 @@ public sealed class PositionVehicleHandler(IVehicleRegistry vehicleRegistry, ILo
     {
         var vehicleId = new VehicleId(message.SystemId, message.ComponentId);
 
-         logger.LogTrace("Handling position message from vehicle {VehicleId}", vehicleId);
+        logger.LogTrace("Handling position message from vehicle {VehicleId}", vehicleId);
         var vehicle = vehicleRegistry.GetRequired(vehicleId);
 
-        vehicle.ApplyPosition(message.Latitude, message.Longitude, message.Altitude);
+        vehicle?.ApplyPosition(message.Latitude, message.Longitude, message.Altitude);
     }
 }

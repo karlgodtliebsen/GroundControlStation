@@ -18,7 +18,7 @@ public sealed class AttitudeVehicleHandler(IVehicleRegistry vehicleRegistry, ILo
         logger.LogTrace("Handling attitude message from vehicle {VehicleId}", vehicleId);
         var vehicle = vehicleRegistry.GetRequired(vehicleId);
 
-        vehicle.ApplyAttitude(
+        vehicle?.ApplyAttitude(
             message.Roll,
             message.Pitch,
             message.Yaw);

@@ -1,12 +1,11 @@
 ﻿using Domain.Library.Configuration;
-
+using DroneGcs.ConsoleHost.Dashboard;
 using DroneGcs.ConsoleHost.HostingLibraries.Abstractions;
+using DroneGcs.ConsoleHost.WorkerServices;
 using DroneGcs.Core.Configuration;
 using DroneGcs.Transport;
 using DroneGcs.Transport.Configuration;
-
 using DroneGs.MavLink.Configuration;
-
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
@@ -29,13 +28,13 @@ public static class ConsoleConfigurator
     public static IServiceCollection AddConfiguration(this IServiceCollection services, IConfiguration configuration)
     {
         services.TryAddTransient<IMultiTaskWorkerService, MultiTaskWorkerService>();
-        services.TryAddTransient<ISingleTaskWorkerService, CommandWorkerService>();
+        services.TryAddTransient<ICommandWorkerService, CommandWorkerService>();
+        services.TryAddTransient<IMonitorWorkerService, MonitorWorkerService>();
         services.TryAddSingleton<LogBuffer>();
 
-        //services.TryAddTransient<MultiTaskHostedService>();
-        //services.TryAddTransient<SingleTaskHostedService>();
         services.AddHostedService<MultiTaskHostedService>();
-        services.AddHostedService<SingleTaskHostedService>();
+        services.AddHostedService<CommandWorkerHostedService>();
+        services.AddHostedService<MonitorWorkerHostedService>();
         services.AddHostedService<DashboardService>();
 
 
@@ -51,6 +50,7 @@ public static class ConsoleConfigurator
     {
         services.AddSingleton<CommandOutputBuffer>();
         services.AddSingleton<LoggingOutputBuffer>();
+        services.AddSingleton<MonitorOutputBuffer>();
 
         services.AddLogging(loggingBuilder =>
         {
