@@ -41,6 +41,9 @@ public partial class DashboardPageViewModel : ObservableObject
     private void Select()
     {
         SelectedCommand = Commands[1];
+
+        SelectedCommand = "arm 1:1";
+        _ = ExecuteCommandAsync(SelectedCommand, CancellationToken.None);
     }
 
     private async Task ExecuteCommandAsync(string line, CancellationToken cancellationToken)

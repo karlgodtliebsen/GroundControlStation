@@ -14,30 +14,36 @@
         <dashboard:DashboardPageViewModel/>
     </uranium:UraniumContentPage.BindingContext>-->
 
+
     <uranium:GridLayout Margin="20"
-                        RowCount="4"
+                        RowCount="2"
                         ColumnCount="1" 
-                        >
+                       
+        >
+        <Border StyleClass="SurfaceContainer, Rounded" StrokeThickness="0">
+            <StackLayout x:Name="VehiclesView" ></StackLayout>
+        </Border>
 
-        <!--<views:VehiclesView>
-        </views:VehiclesView>-->
+        <VerticalStackLayout  Margin="20" Spacing="20">
+            <Border StyleClass="SurfaceContainer, Rounded" StrokeThickness="0" Margin="0,20">
+                <HorizontalStackLayout Padding="20,20">
+                    <Label Text="Select a Command." FontSize="Title" />
+                                <uranium:Dropdown
+                                Placeholder="Choose a command"
+                                ItemsSource="{Binding Commands}"
+                                SelectedItem="{Binding SelectedCommand}"
+                                ></uranium:Dropdown>
+                </HorizontalStackLayout>
+            </Border>
 
-        <StackLayout x:Name="VehiclesView"></StackLayout>
-
-        <Label Text="Select a Command." />
-
-       <!--<Select
-           WidthRequest="320"
-            Placeholder="Choose a command"
-            ItemsSource="{Binding Commands}"
-            SelectedItem="{Binding SelectedCommand}"
-            ItemDisplayBinding="{Binding CommandName}" />-->
-
-        <Button Text="Execute Command" StyleClass="OutlinedButton" Command="{Binding SelectCommand}" />
-
+            <Border StyleClass="SurfaceContainer, Rounded" StrokeThickness="0" Margin="0,20" HeightRequest="50">
+                <Button  Text="Execute Command" StyleClass="OutlinedButton" Command="{Binding SelectCommand}">
+                    <Button.HorizontalOptions>Start</Button.HorizontalOptions>
+                </Button>
+            </Border>
+        </VerticalStackLayout>
 
     </uranium:GridLayout>
-
 
 
 
