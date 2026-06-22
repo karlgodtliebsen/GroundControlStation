@@ -1,55 +1,114 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
 
-	<PropertyGroup>
-		<TargetFramework>net10.0</TargetFramework>
-		<SingleProject>true</SingleProject>
-		<ImplicitUsings>enable</ImplicitUsings>
-		<RootNamespace>GroundControlStationApp</RootNamespace>
-		<UseMaui>true</UseMaui>
-		<Nullable>enable</Nullable>
+    <PropertyGroup>
+        <TargetFramework>net10.0</TargetFramework>
+        <SingleProject>true</SingleProject>
+        <ImplicitUsings>enable</ImplicitUsings>
+        <RootNamespace>GroundControlStationApp</RootNamespace>
+        <UseMaui>true</UseMaui>
+        <Nullable>enable</Nullable>
 
-		<!-- Enable XAML source generation for faster build times and improved performance.
+        <!-- Enable XAML source generation for faster build times and improved performance.
 		     This generates C# code from XAML at compile time instead of runtime inflation.
 		     To disable, remove this line.
 		     For individual files, you can override by setting Inflator metadata:
 		       <MauiXaml Update="MyPage.xaml" Inflator="Default" /> (reverts to defaults: Runtime for Debug, XamlC for Release)
 		       <MauiXaml Update="MyPage.xaml" Inflator="Runtime" /> (force runtime inflation) -->
-		<MauiXamlInflator>SourceGen</MauiXamlInflator>
-	</PropertyGroup>
+        <MauiXamlInflator>SourceGen</MauiXamlInflator>
+    </PropertyGroup>
 
-	<ItemGroup>
-		<!-- Images -->
-		<MauiImage Include="Resources\Images\*" />
-		<MauiImage Update="Resources\Images\dotnet_bot.png" Resize="True" BaseSize="300,185" />
+    <ItemGroup>
+        <!-- Images -->
+        <MauiImage Include="Resources\Images\*" />
+        <MauiImage Update="Resources\Images\dotnet_bot.png" Resize="True" BaseSize="300,185" />
 
-		<!-- Custom Fonts -->
-		<MauiFont Include="Resources\Fonts\*" />
+        <!-- Custom Fonts -->
+        <MauiFont Include="Resources\Fonts\*" />
 
-		<!-- Raw Assets (also remove the "Resources\Raw" prefix) -->
-		<MauiAsset Include="Resources\Raw\**" LogicalName="%(RecursiveDir)%(Filename)%(Extension)" />
-	</ItemGroup>
+        <!-- Raw Assets (also remove the "Resources\Raw" prefix) -->
+        <MauiAsset Include="Resources\Raw\**" LogicalName="%(RecursiveDir)%(Filename)%(Extension)" />
+    </ItemGroup>
 
-	<ItemGroup>
-		<PackageReference Include="CommunityToolkit.Maui" />
-		<PackageReference Include="CommunityToolkit.Mvvm" />
-		<PackageReference Include="SkiaSharp.Views.Maui.Controls" />
-		<PackageReference Include="Mapsui" />
-		<PackageReference Include="Mapsui.Maui" />
-		<PackageReference Include="Microsoft.Maui.Controls" />
-		<PackageReference Include="Microsoft.Extensions.Configuration.Binder" />
-		<PackageReference Include="Microsoft.Extensions.Configuration.CommandLine" />
-		<PackageReference Include="Microsoft.Extensions.Configuration.EnvironmentVariables" />
-		<PackageReference Include="Microsoft.Extensions.Configuration.FileExtensions" />
-		<PackageReference Include="Microsoft.Extensions.Logging.Debug" />
-		<PackageReference Include="Microsoft.Extensions.Configuration" />
-		<PackageReference Include="Microsoft.Extensions.Configuration.Abstractions" />
-		<PackageReference Include="UraniumUI.Blurs" />
-		<PackageReference Include="UraniumUI.Dialogs.CommunityToolkit" />
-		<PackageReference Include="UraniumUI.Dialogs.Mopups" />
-		<PackageReference Include="UraniumUI.Icons.FontAwesome" />
-		<PackageReference Include="UraniumUI.Icons.MaterialIcons" />
-		<PackageReference Include="UraniumUI.Material" />
-		<PackageReference Include="UraniumUI.Validations.DataAnnotations" />
-	</ItemGroup>
+    <ItemGroup>
+        <PackageReference Include="CommunityToolkit.Maui" />
+        <PackageReference Include="CommunityToolkit.Mvvm" />
+        <PackageReference Include="SkiaSharp.Views.Maui.Controls" />
+        <PackageReference Include="Mapsui" />
+        <PackageReference Include="Mapsui.Maui" />
+        <PackageReference Include="Microsoft.Maui.Controls" />
+        <PackageReference Include="Microsoft.Extensions.Configuration.Binder" />
+        <PackageReference Include="Microsoft.Extensions.Configuration.CommandLine" />
+        <PackageReference Include="Microsoft.Extensions.Configuration.EnvironmentVariables" />
+        <PackageReference Include="Microsoft.Extensions.Configuration.FileExtensions" />
+        <PackageReference Include="Microsoft.Extensions.Logging.Debug" />
+        <PackageReference Include="Microsoft.Extensions.Configuration" />
+        <PackageReference Include="Microsoft.Extensions.Configuration.Abstractions" />
+        <PackageReference Include="UraniumUI.Blurs" />
+        <PackageReference Include="UraniumUI.Dialogs.CommunityToolkit" />
+        <PackageReference Include="UraniumUI.Dialogs.Mopups" />
+        <PackageReference Include="UraniumUI.Icons.FontAwesome" />
+        <PackageReference Include="UraniumUI.Icons.MaterialSymbols" />
+        <PackageReference Include="UraniumUI.Icons.SegoeFluent" />
+        <PackageReference Include="UraniumUI.Material" />
+        <PackageReference Include="UraniumUI.Validations.DataAnnotations" />
+    </ItemGroup>
+
+    <ItemGroup>
+        <ProjectReference Include="..\..\Domain\DroneGcs.Core\DroneGcs.Core.csproj" />
+    </ItemGroup>
+
+    <ItemGroup>
+        <Compile Update="Views\Dashboard\DashboardPage.xaml.cs">
+            <DependentUpon>DashboardPage.xaml</DependentUpon>
+        </Compile>
+        <Compile Update="Views\Messages\MessagesPage.xaml.cs">
+            <DependentUpon>MessagesPage.xaml</DependentUpon>
+        </Compile>
+        <Compile Update="Views\Settings\SettingsPage.xaml.cs">
+            <DependentUpon>SettingsPage.xaml</DependentUpon>
+        </Compile>
+        <Compile Update="Views\Vehicles\Views\VehiclesView.xaml.cs">
+            <DependentUpon>VehiclesView.xaml</DependentUpon>
+        </Compile>
+        <Compile Update="Views\Vehicles\VehiclesPage.xaml.cs">
+            <DependentUpon>VehiclesPage.xaml</DependentUpon>
+        </Compile>
+    </ItemGroup>
+
+    <ItemGroup>
+        <MauiXaml Update="Resources\Styles\Override.xaml">
+            <Generator>MSBuild:Compile</Generator>
+        </MauiXaml>
+        <MauiXaml Update="Views\Connect\ConnectPopup.xaml">
+            <Generator>MSBuild:Compile</Generator>
+        </MauiXaml>
+        <MauiXaml Update="Views\Dashboard\DashboardPage.xaml">
+            <Generator>MSBuild:Compile</Generator>
+        </MauiXaml>
+        <MauiXaml Update="Views\Messages\MessagesPage.xaml">
+            <Generator>MSBuild:Compile</Generator>
+        </MauiXaml>
+        <MauiXaml Update="Views\Settings\SettingsPage.xaml">
+            <Generator>MSBuild:Compile</Generator>
+        </MauiXaml>
+        <MauiXaml Update="Views\Vehicles\Views\VehiclesView.xaml">
+            <Generator>MSBuild:Compile</Generator>
+        </MauiXaml>
+        <MauiXaml Update="Views\Vehicles\VehiclesPage.xaml">
+            <Generator>MSBuild:Compile</Generator>
+        </MauiXaml>
+    </ItemGroup>
+
+    <ItemGroup>
+        <None Update="Resources\Styles\Colors.xaml">
+            <Generator>MSBuild:Compile</Generator>
+        </None>
+        <None Update="Resources\Styles\Override.xaml">
+            <Generator>MSBuild:Compile</Generator>
+        </None>
+        <None Update="Resources\Styles\Styles.xaml">
+            <Generator>MSBuild:Compile</Generator>
+        </None>
+    </ItemGroup>
 
 </Project>

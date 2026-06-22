@@ -15,13 +15,13 @@ public class MonitorWorkerService(IVehicleConnectionMonitor monitor, MonitorOutp
     public async Task Run(CancellationToken stoppingToken)
     {
         logger.LogInformation("Console command service started.");
-        eventHub.SubscribeDomainEvent<VehicleArmed>((e) => monitorOutputBuffer.Add(e.Name));
-        eventHub.SubscribeDomainEvent<VehicleDisarmed>((e) => monitorOutputBuffer.Add(e.Name));
-        eventHub.SubscribeDomainEvent<VehicleConnectionStateChanged>((e) => monitorOutputBuffer.Add(e.Name));
-        eventHub.SubscribeDomainEvent<VehicleModeChanged>((e) => monitorOutputBuffer.Add(e.Name));
-        eventHub.SubscribeDomainEvent<VehicleRegistered>((e) => monitorOutputBuffer.Add(e.Name));
-        eventHub.SubscribeDomainEvent<VehicleStateUpdated>((e) => monitorOutputBuffer.Add(e.Name));
-        eventHub.SubscribeDomainEvent<VehicleStatusMessageReceived>((e) => monitorOutputBuffer.Add(e.Name));
+        //eventHub.SubscribeDomainEvent<VehicleArmed>((e) => monitorOutputBuffer.Add(e.Name));
+        //eventHub.SubscribeDomainEvent<VehicleDisarmed>((e) => monitorOutputBuffer.Add(e.Name));
+        //eventHub.SubscribeDomainEvent<VehicleConnectionStateChanged>((e) => monitorOutputBuffer.Add(e.Name));
+        //eventHub.SubscribeDomainEvent<VehicleModeChanged>((e) => monitorOutputBuffer.Add(e.Name));
+        //eventHub.SubscribeDomainEvent<VehicleRegistered>((e) => monitorOutputBuffer.Add(e.Name));
+        //eventHub.SubscribeDomainEvent<VehicleStateUpdated>((e) => monitorOutputBuffer.Add(e.Name));
+        //eventHub.SubscribeDomainEvent<VehicleStatusMessageReceived>((e) => monitorOutputBuffer.Add(e.Name));
 
         //start a scheduled task to update the monitor output buffer every second
         _ = Task.Run(async () =>

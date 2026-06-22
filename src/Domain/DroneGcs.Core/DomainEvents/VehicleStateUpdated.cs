@@ -14,8 +14,13 @@ public class VehicleStateUpdated : DomainEvent<VehicleState>
     {
     }
 
-    /// <inheritdoc />
-    public VehicleStateUpdated(VehicleState data, MetaData md) : base("VehicleStateUpdated", data, md)
-    {
-    }
+    /// <summary>
+    /// Gets the vehicle ID associated with the domain event.
+    /// </summary>
+    public VehicleId VehicleId => ((VehicleState)Payload!).VehicleId;
+
+    /// <summary>
+    /// Gets the vehicle state associated with the domain event.
+    /// </summary>
+    public VehicleState VehicleState => (VehicleState)Payload!;
 }

@@ -1,6 +1,24 @@
-﻿using Microsoft.Extensions.Configuration;
+﻿using Domain.Library.Configuration;
+
+using DroneGcs.Core.Configuration;
+using DroneGcs.Transport;
+using DroneGcs.Transport.Configuration;
+
+using DroneGs.MavLink.Configuration;
+
+using GroundControlStationApp.Views.Connect;
+using GroundControlStationApp.Views.Dashboard;
+using GroundControlStationApp.Views.Messages;
+using GroundControlStationApp.Views.Settings;
+using GroundControlStationApp.Views.Vehicles;
+using GroundControlStationApp.Views.Vehicles.Views;
+
+using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection.Extensions;
 using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Options;
+
+using VehiclesView = GroundControlStationApp.Views.Vehicles.Views.VehiclesView;
 
 namespace GroundControlStationApp.Configuration;
 
@@ -15,7 +33,7 @@ public static class ApplicationConfigurator
     /// <param name="services"></param>
     /// <param name="configuration">The configuration.</param>
     /// <returns>The updated service collection.</returns>
-    public static IServiceCollection AddApplicationConfiguration(IServiceCollection services, IConfiguration configuration)
+    public static IServiceCollection AddApplicationConfiguration(this IServiceCollection services, IConfiguration configuration)
     {
         //TODO: add app-settings/config file
         //ApplicationOptions? applicationOptions = configuration.GetSection(ApplicationOptions.SectionName).Get<ApplicationOptions>();
@@ -50,72 +68,100 @@ public static class ApplicationConfigurator
         // Register shared state service as singleton for runtime state management
         ApplicationStateService stateService = new();
         stateService.Initialize(state);
-        services.AddSingleton(stateService);
+        services.TryAddSingleton(stateService);
+        services.AddViewsConfiguration();
+        services.TryAddSingleton<InitializeSitl>();
+        services.TryAddSingleton<AppViewModels.ThemeChangeViewModel>();
 
         services
-            .AddViewsConfiguration()
-            ;
+            .AddLibraryServices()
+            .AddDomainServices(configuration)
+            .AddMavLinkTransportServices(configuration)
+            .AddMavLinkServices(configuration);
 
+        services.AddLogging(loggingBuilder =>
+        {
+            loggingBuilder.ClearProviders();
+            loggingBuilder.AddConfiguration(configuration.GetSection("Logging"));
+            loggingBuilder.SetMinimumLevel(LogLevel.Information);
 
+            loggingBuilder.AddFilter("Microsoft", LogLevel.Warning);
+            loggingBuilder.AddFilter("System", LogLevel.Warning);
+            //loggingBuilder.AddConsole();
+            //loggingBuilder.Services.AddSingleton<ILoggerProvider, BufferedLoggerProvider>();
+
+            loggingBuilder.AddDebug();
+        });
         return services;
     }
 
     private static IServiceCollection AddViewsConfiguration(this IServiceCollection services)
     {
-        services.AddSingleton<App>();
-        services.AddSingleton<AppShell>();
+        services.TryAddSingleton<App>();
+        services.TryAddSingleton<AppShell>();
 
-        services.AddTransient<MainPage>();
+        services.TryAddSingleton<MainPage>();
         services.TryAddSingleton<MainPageViewModel>();
-        //services.TryAddSingleton<ConnectPopup>();
-        //services.TryAddSingleton<ConnectPopupViewModel>();
 
-        ////SubView/Controls
-        //services.TryAddSingleton<FlightDataViewModel>();
-        //services.TryAddSingleton<FlightDataView>();
+        //SubView/Controls
+        services.TryAddSingleton<ConnectPopup>();
+        services.TryAddSingleton<ConnectPopupViewModel>();
 
-        //services.TryAddSingleton<HudViewModel>();
-        //services.TryAddSingleton<HudView>();
+        services.TryAddSingleton<VehiclesViewModel>();
+        services.TryAddSingleton<VehiclesView>();
 
-        //services.TryAddSingleton<FlightDataMapViewModel>();
-        //services.TryAddSingleton<FlightDataMapView>();
+        services.TryAddSingleton<VehiclesPageViewModel>();
+        services.TryAddSingleton<VehiclesPage>();
 
-        //services.TryAddSingleton<QuickTabViewModel>();
-        //services.TryAddSingleton<QuickTabView>();
+        services.TryAddSingleton<SettingsPageViewModel>();
+        services.TryAddSingleton<SettingsPage>();
 
-        //services.TryAddSingleton<ActionsTabViewModel>();
-        //services.TryAddSingleton<ActionsTabView>();
+        services.TryAddSingleton<MessagesPageViewModel>();
+        services.TryAddSingleton<MessagesPage>();
 
-        //services.TryAddSingleton<StatusTabViewModel>();
-        //services.TryAddSingleton<StatusTabView>();
-
-        //services.TryAddSingleton<MenuFlightPlannerViewModel>();
-        //services.TryAddSingleton<MenuFlightPlannerView>();
-
-        //services.TryAddSingleton<MenuInitSetupViewModel>();
-        //services.TryAddSingleton<MenuInitSetupView>();
-
-        //services.TryAddSingleton<MenuConfigTuningViewModel>();
-        //services.TryAddSingleton<MenuConfigTuningView>();
-
-        //services.TryAddSingleton<MenuSimulationViewModel>();
-        //services.TryAddSingleton<MenuSimulationView>();
-
-        //services.TryAddSingleton<MenuHelpViewModel>();
-        //services.TryAddSingleton<MenuHelpView>();
-
+        services.TryAddSingleton<DashboardPageViewModel>();
+        services.TryAddSingleton<DashboardPage>();
 
         return services;
     }
 
 
-    public static IServiceProvider UseDispatchApp(this IServiceProvider serviceProvider)
+    /// <summary>
+    /// 
+    /// </summary>
+    /// <param name="serviceProvider"></param>
+    /// <returns></returns>
+    public static IServiceProvider UseApplication(this IServiceProvider serviceProvider)
     {
-        ILogger<ApplicationOptions> logger = serviceProvider.GetRequiredService<ILogger<ApplicationOptions>>();
-        logger.LogInformation("UseDispatchApp - Setting up Dispatch Messaging");
-        //Instantiation Activates subscriptions
-        //serviceProvider.GetRequiredService<InformationViewModel>();
-        //serviceProvider.GetRequiredService<DispatchServerSentEventsMessagesHub>().SetupSubscriptions();
+        var logger = serviceProvider.GetRequiredService<ILogger<ApplicationOptions>>();
+        logger.LogInformation("UseApplication - Setting up Application Operations");
+
+        var endPoint = serviceProvider.GetRequiredService<IOptions<TransportEndpoint>>();
+
+        endPoint.Value.RemoteHost = "127.0.0.1";
+        endPoint.Value.RemotePort = 14551;
+
+        endPoint.Value.LocalHost = "0.0.0.0";
+        endPoint.Value.LocalPort = 14550;
+        logger.LogInformation($"Console configuration initialized. UDP local:  {endPoint.Value.LocalHost}:{endPoint.Value.LocalPort}");
+        logger.LogInformation($"Console configuration initialized. UDP remote: {endPoint.Value.RemoteHost}:{endPoint.Value.RemotePort}");
+
+        //serviceProvider.GetRequiredService<MessagesPageViewModel>().SetupSubscriptions();
+        //serviceProvider.GetRequiredService<DashboardPageViewModel>().SetupSubscriptions();
+
+        //serviceProvider.GetRequiredService<DashboardPage>();
+        //serviceProvider.GetRequiredService<SettingsPage>();
+        //serviceProvider.GetRequiredService<MessagesPage>();
+
+
+        serviceProvider.GetRequiredService<VehiclesPage>();
+        //serviceProvider.GetRequiredService<VehiclesView>();
+
+        serviceProvider
+            .UseMavLinkServices()
+            .UseDomainServices()
+            ;
+
         return serviceProvider;
     }
 }

@@ -117,7 +117,7 @@ public sealed class VehicleCommandService(
         try
         {
             var ack = await waitForAckTask.ConfigureAwait(false);
-            await eventHub.PublishDomainEventAsync(new VehicleModeChanged((vehicleId, mode, dateTimeProvider.UtcNow)), cancellationToken);
+            await eventHub.PublishDomainEventAsync(new VehicleModeChanged(new VehicleModeChange(vehicleId, mode, dateTimeProvider.UtcNow)), cancellationToken);
             return new VehicleCommandResponse(vehicleId, MapResult(ack.Result), ack.ReceivedAt);
         }
         catch (TimeoutException)

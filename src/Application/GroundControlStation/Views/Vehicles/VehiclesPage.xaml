@@ -1,0 +1,24 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<uranium:UraniumContentPage  
+    xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+    xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+    x:Class="GroundControlStationApp.Views.Vehicles.VehiclesPage"
+    xmlns:uranium="http://schemas.enisn-projects.io/dotnet/maui/uraniumui"
+    xmlns:vehicles="clr-namespace:GroundControlStationApp.Views.Vehicles"
+    xmlns:material="http://schemas.enisn-projects.io/dotnet/maui/uraniumui/material"
+
+ 
+    >
+    <!--<uranium:UraniumContentPage.BindingContext>
+        <vehicles:VehiclesPageViewModel/>
+    </uranium:UraniumContentPage.BindingContext>-->
+
+    <uranium:GridLayout  RowCount="2"
+                         ColumnCount="1" >
+
+        <material:DataGrid ItemsSource="{Binding VehicleSessions}" UseAutoColumns="True" Margin="30" />
+
+        <material:DataGrid ItemsSource="{Binding VehicleStates}" UseAutoColumns="True" Margin="30" />
+
+    </uranium:GridLayout>
+</uranium:UraniumContentPage>

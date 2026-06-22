@@ -55,6 +55,7 @@ public class CommandWorkerService(IVehicleService vehicleService, CommandOutputB
                 {
                     throw new DomainException("disarmResponse.Result != VehicleCommandResult.Accepted");
                 }
+
                 // Handle unexpected mode
                 await EventuallyAsync(
                     () =>
@@ -153,7 +154,7 @@ public class CommandWorkerService(IVehicleService vehicleService, CommandOutputB
             //var line = AnsiConsole.Ask<string>("[green]>[/]");
             //var line = await Task.Run(() => AnsiConsole.Prompt(new TextPrompt<string>("[green]>[/]").AllowEmpty()), stoppingToken);
 
-            //commandOutputBuffer.Add("Arm result: " + response.Result);
+            //CommandOutputBuffer.Add("Arm result: " + response.Result);
 
 
             if (line is null)

@@ -1,0 +1,44 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+
+<uranium:UraniumContentPage  
+    xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+    xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+    x:Class="GroundControlStationApp.Views.Dashboard.DashboardPage"
+    xmlns:uranium="http://schemas.enisn-projects.io/dotnet/maui/uraniumui"
+    xmlns:dashboard="clr-namespace:GroundControlStationApp.Views.Dashboard"
+    xmlns:views="clr-namespace:GroundControlStationApp.Views"
+    >
+
+    <!-- Set the BindingContext to the ViewModel -->
+    <!--<uranium:UraniumContentPage.BindingContext>
+        <dashboard:DashboardPageViewModel/>
+    </uranium:UraniumContentPage.BindingContext>-->
+
+    <uranium:GridLayout Margin="20"
+                        RowCount="4"
+                        ColumnCount="1" 
+                        >
+
+        <!--<views:VehiclesView>
+        </views:VehiclesView>-->
+
+        <StackLayout x:Name="VehiclesView"></StackLayout>
+
+        <Label Text="Select a Command." />
+
+       <!--<Select
+           WidthRequest="320"
+            Placeholder="Choose a command"
+            ItemsSource="{Binding Commands}"
+            SelectedItem="{Binding SelectedCommand}"
+            ItemDisplayBinding="{Binding CommandName}" />-->
+
+        <Button Text="Execute Command" StyleClass="OutlinedButton" Command="{Binding SelectCommand}" />
+
+
+    </uranium:GridLayout>
+
+
+
+
+</uranium:UraniumContentPage>

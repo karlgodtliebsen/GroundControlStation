@@ -1,10 +1,12 @@
-using Foundation;
+﻿using Foundation;
 
-namespace GroundControlStation.Mac
+namespace GroundControlStation.Mac;
+
+[Register(nameof(AppDelegate))]
+public class AppDelegate : MauiUIApplicationDelegate
 {
-    [Register(nameof(AppDelegate))]
-    public class AppDelegate : MauiUIApplicationDelegate
+    protected override MauiApp CreateMauiApp()
     {
-        protected override MauiApp CreateMauiApp() => MauiProgram.CreateMauiApp();
+        return MauiProgram.CreateMauiApp();
     }
 }

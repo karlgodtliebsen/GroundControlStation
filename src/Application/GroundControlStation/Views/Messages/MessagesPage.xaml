@@ -1,0 +1,26 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<uranium:UraniumContentPage  
+    xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+    xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+    x:Class="GroundControlStationApp.Views.Messages.MessagesPage"
+    xmlns:uranium="http://schemas.enisn-projects.io/dotnet/maui/uraniumui"
+    xmlns:messages="clr-namespace:GroundControlStationApp.Views.Messages"
+
+    >
+
+    <!-- Set the BindingContext to the ViewModel -->
+    <uranium:UraniumContentPage.BindingContext>
+        <messages:MessagesPageViewModel/>
+    </uranium:UraniumContentPage.BindingContext>
+
+
+    <uranium:GridLayout  RowCount="1"
+                         ColumnCount="1" >
+       
+
+    </uranium:GridLayout>
+
+
+
+
+</uranium:UraniumContentPage>

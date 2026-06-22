@@ -41,6 +41,7 @@ public static class DomainConfigurator
 
         services.TryAddSingleton<IVehicleRegistry, VehicleRegistry>();
 
+        services.TryAddSingleton<ICommandService, CommandService>();
         services.TryAddTransient<IVehicleCommandService, VehicleCommandService>();
         services.TryAddTransient<IVehicleService, VehicleService>();
 

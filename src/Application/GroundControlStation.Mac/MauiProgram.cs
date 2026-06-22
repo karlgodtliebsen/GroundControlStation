@@ -1,6 +1,7 @@
 ﻿using GroundControlStationApp;
+using GroundControlStationApp.Configuration;
 
-namespace GroundControlStation.Mac;
+namespace GroundControlStation;
 
 public static class MauiProgram
 {
@@ -11,6 +12,9 @@ public static class MauiProgram
         builder
             .UseSharedMauiApp();
 
-        return builder.Build();
+        var host = builder.Build();
+        host.Services.UseApplication();
+
+        return host;
     }
 }

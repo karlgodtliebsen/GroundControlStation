@@ -1,4 +1,5 @@
 ﻿using Domain.Library.EventHub.Events;
+
 using DroneGcs.Core.Models;
 
 namespace DroneGcs.Core.DomainEvents;
@@ -14,9 +15,8 @@ public class VehicleDisarmed : DomainEvent<VehicleId>
     {
     }
 
-    /// <inheritdoc />
-    public VehicleDisarmed(VehicleId vehicleId, MetaData md)
-        : base("VehicleDisarmed", vehicleId, md)
-    {
-    }
+    /// <summary>
+    /// Gets the ID of the vehicle that was disarmed.
+    /// </summary>
+    public VehicleId VehicleId => (VehicleId)Payload!;
 }

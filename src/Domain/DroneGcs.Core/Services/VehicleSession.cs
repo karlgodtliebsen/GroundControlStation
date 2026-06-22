@@ -8,7 +8,7 @@ namespace DroneGcs.Core.Services;
 /// <summary>
 /// Represents a session for a vehicle, managing its state and handling updates.
 /// </summary>
-public sealed class VehicleSession(VehicleState initialState)
+public class VehicleSession(VehicleState initialState)
 {
     private VehicleState state = initialState;
     private const byte MavModeFlagSafetyArmed = 0b1000_0000;
@@ -61,7 +61,7 @@ public sealed class VehicleSession(VehicleState initialState)
             return null;
         }
 
-        var stateChanged = new VehicleConnectionStateChanged((state.VehicleId, previousState, currentState, now));
+        var stateChanged = new VehicleConnectionStateChanged(new VehicleConnectionStateChange(state.VehicleId, previousState, currentState, now));
         return stateChanged;
     }
 

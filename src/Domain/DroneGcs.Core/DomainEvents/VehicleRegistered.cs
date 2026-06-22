@@ -12,17 +12,10 @@ public class VehicleRegistered : DomainEvent<VehicleId>
     /// <summary>
     /// 
     /// </summary>
-    public VehicleId VehicleId { get; set; }
+    public VehicleId VehicleId => (VehicleId)Payload!;
 
     /// <inheritdoc />
     public VehicleRegistered(VehicleId data) : base("VehicleRegistered", data)
     {
-        VehicleId = data;
-    }
-
-    /// <inheritdoc />
-    public VehicleRegistered(VehicleId data, MetaData md) : base("VehicleRegistered", data, md)
-    {
-        VehicleId = data;
     }
 }
