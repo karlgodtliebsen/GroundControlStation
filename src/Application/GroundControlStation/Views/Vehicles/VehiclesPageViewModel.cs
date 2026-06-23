@@ -1,7 +1,4 @@
-﻿using System.Collections.ObjectModel;
-
-using DroneGcs.Core.DomainEvents;
-using DroneGcs.Core.Models;
+﻿using DroneGcs.Core.DomainEvents;
 using DroneGcs.Core.Services;
 
 using Microsoft.Extensions.Logging;
@@ -15,32 +12,18 @@ public class VehiclesPageViewModel : BindableObject // UraniumBindableObject //O
 {
     private readonly IVehicleService vehicleService;
     private readonly IDomainEventHub eventHub;
-    private readonly IDispatcher dispatcher;
     private readonly ILogger<VehiclesPageViewModel> logger;
-
-    /// <summary>
-    /// Gets the collection of vehicle sessions.
-    /// </summary>
-    public ObservableCollection<VehicleSession> VehicleSessions { get; set; } = [];
-
-    /// <summary>
-    /// Gets the collection of vehicle states.
-    /// </summary>
-    public ObservableCollection<VehicleState> VehicleStates { get; set; } = [];
-
 
     /// <summary>
     /// Initializes a new instance of the <see cref="VehiclesPageViewModel"/> class.
     /// </summary>
     /// <param name="vehicleService">The vehicle service.</param>
     /// <param name="eventHub">The event hub.</param>
-    /// <param name="dispatcher"></param>
     /// <param name="logger">The logger.</param>
-    public VehiclesPageViewModel(IVehicleService vehicleService, IDomainEventHub eventHub, IDispatcher dispatcher, ILogger<VehiclesPageViewModel> logger)
+    public VehiclesPageViewModel(IVehicleService vehicleService, IDomainEventHub eventHub, ILogger<VehiclesPageViewModel> logger)
     {
         this.vehicleService = vehicleService;
         this.eventHub = eventHub;
-        this.dispatcher = dispatcher;
         this.logger = logger;
         SetupSubscriptions();
     }
@@ -54,7 +37,8 @@ public class VehiclesPageViewModel : BindableObject // UraniumBindableObject //O
         //eventHub.SubscribeDomainEvent<VehicleDisarmed>((m) => OnVehicleDisarmed((VehicleDisarmed)m));
         //eventHub.SubscribeDomainEvent<VehicleConnectionStateChanged>((m) => OnVehicleConnectionStateChanged((VehicleConnectionStateChanged)m));
         //eventHub.SubscribeDomainEvent<VehicleModeChanged>((m) => OnVehicleModeChanged((VehicleModeChanged)m));
-        eventHub.SubscribeDomainEvent<VehicleRegistered>((m) => OnVehicleRegistered((VehicleRegistered)m));
+        eventHub.SubscribeDomainEvent<VehicleRegistered>(OnVehicleRegistered);
+        eventHub.SubscribeDomainEvent<VehicleStateUpdated>(OnVehicleStateUpdated);
         //eventHub.SubscribeDomainEvent<VehicleStateUpdated>((m) => OnVehicleStateUpdated((VehicleStateUpdated)m));
         //eventHub.SubscribeDomainEvent<VehicleStatusMessageReceived>((m) => OnVehicleStatusMessageReceived((VehicleStatusMessageReceived)m));
     }
@@ -77,19 +61,19 @@ public class VehiclesPageViewModel : BindableObject // UraniumBindableObject //O
 
     private void OnVehicleRegistered(VehicleRegistered m)
     {
-        dispatcher.Dispatch(() =>
+        Dispatcher.Dispatch(() =>
         {
-            VehicleSessions.Clear();
-            VehicleStates.Clear();
-            foreach (var vehicle in vehicleService.GetVehicles())
-            {
-                VehicleStates.Add(vehicle);
-                var session = vehicleService.GetVehicle(vehicle.VehicleId);
-                if (session is not null)
-                {
-                    VehicleSessions.Add(session);
-                }
-            }
+            //VehicleSessions.Clear();
+            //VehicleStates.Clear();
+            //foreach (var vehicle in vehicleService.GetVehicles())
+            //{
+            //    VehicleStates.Add(vehicle);
+            //    var session = vehicleService.GetVehicle(vehicle.VehicleId);
+            //    if (session is not null)
+            //    {
+            //        VehicleSessions.Add(session);
+            //    }
+            //}
         });
     }
 

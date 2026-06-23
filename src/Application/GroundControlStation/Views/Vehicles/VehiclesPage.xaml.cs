@@ -1,4 +1,6 @@
-﻿using UraniumUI.Pages;
+﻿using GroundControlStationApp.Views.Vehicles.Views;
+
+using UraniumUI.Pages;
 
 namespace GroundControlStationApp.Views.Vehicles;
 
@@ -18,9 +20,12 @@ public partial class VehiclesPage : UraniumContentPage
     /// <summary>
     /// Initializes a new instance of the <see cref="VehiclesPage"/> class with the specified view model.
     /// </summary>
+    /// <param name="vehiclesView">The view to be used in the page.</param>
     /// <param name="viewModel">The view model to be used as the binding context.</param>
-    public VehiclesPage(VehiclesPageViewModel viewModel) : this()
+    public VehiclesPage(VehiclesView vehiclesView, VehiclesPageViewModel viewModel) : this()
     {
         BindingContext = viewModel;
+        var view = FindByName("VehiclesView") as StackLayout;
+        view!.Children.Add(vehiclesView);
     }
 }

@@ -22,14 +22,14 @@ public sealed class CapturingDomainEventHub(ILogger<EventHub> logger) : DomainEv
 
 
     /// <inheritdoc />
-    public override void PublishDomainEvent(IDomainEvent domainEvent)
+    public override void PublishDomainEvent<T>(T domainEvent)
     {
         events.Add(domainEvent);
         base.PublishDomainEvent(domainEvent);
     }
 
     /// <inheritdoc />
-    public override Task PublishDomainEventAsync(IDomainEvent domainEvent, CancellationToken cancellationToken = default)
+    public override Task PublishDomainEventAsync<T>(T domainEvent, CancellationToken cancellationToken = default)
     {
         events.Add(domainEvent);
         return base.PublishDomainEventAsync(domainEvent, cancellationToken);

@@ -27,5 +27,6 @@ public partial class DashboardPage : UraniumContentPage
         BindingContext = viewModel;
         var view = FindByName("VehiclesView") as StackLayout;
         view!.Children.Add(vehiclesView);
+        // PickerField.SelectedValueChangedCommand = viewModel.ExecuteCommand;
     }
 }

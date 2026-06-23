@@ -28,6 +28,14 @@ public sealed class VehicleCommandService(
 {
     private static readonly TimeSpan CommandAckTimeout = TimeSpan.FromSeconds(5);
 
+    private VehicleCommandResponse? ValidateLand(VehicleState state)
+    {
+        return state.ConnectionState != VehicleConnectionState.Online
+            ? new VehicleCommandResponse(state.VehicleId, VehicleCommandResult.Denied, dateTimeProvider.UtcNow)
+            : !state.IsArmed ? new VehicleCommandResponse(state.VehicleId, VehicleCommandResult.Denied, dateTimeProvider.UtcNow) : null;
+    }
+
+
     private VehicleCommandResponse? ValidateCanSetMode(VehicleId vehicleId, VehicleMode mode)
     {
         var vehicle = registry.GetRequired(vehicleId);
@@ -50,6 +58,19 @@ public sealed class VehicleCommandService(
 
         var validation = commandPolicy.ValidateArm(vehicle.State);
         return validation;
+    }
+
+    /// <inheritdoc />
+    public Task<VehicleCommandResponse> LandAsync(VehicleState state, CancellationToken cancellationToken)
+    {
+        var validation = ValidateLand(state);
+        if (validation is not null)
+        {
+            return Task.FromResult(validation);
+        }
+
+        var vehicleId = state.VehicleId;
+        return SetModeAsync(vehicleId, VehicleMode.Land, cancellationToken);
     }
 
     /// <inheritdoc />

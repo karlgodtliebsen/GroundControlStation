@@ -26,11 +26,19 @@ public interface IVehicleCommandService : IAsyncDisposable
 
 
     /// <summary>
-    /// 
+    /// Lands the specified vehicle.
     /// </summary>
-    /// <param name="vehicleId"></param>
-    /// <param name="mode"></param>
-    /// <param name="cancellationToken"></param>
-    /// <returns></returns>
+    /// <param name="state">The current state of the vehicle to land.</param>
+    /// <param name="cancellationToken">A token to monitor for cancellation requests.</param>
+    /// <returns>A task that represents the asynchronous operation.</returns>
+    Task<VehicleCommandResponse> LandAsync(VehicleState state, CancellationToken cancellationToken);
+
+    /// <summary>
+    /// Sets the mode of the specified vehicle.
+    /// </summary>
+    /// <param name="vehicleId">The ID of the vehicle to set the mode for.</param>
+    /// <param name="mode">The mode to set.</param>
+    /// <param name="cancellationToken">A token to monitor for cancellation requests.</param>
+    /// <returns>A task that represents the asynchronous operation.</returns>
     Task<VehicleCommandResponse> SetModeAsync(VehicleId vehicleId, VehicleMode mode, CancellationToken cancellationToken);
 }

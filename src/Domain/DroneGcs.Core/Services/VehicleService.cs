@@ -8,10 +8,10 @@ using DroneGcs.Core.Models;
 namespace DroneGcs.Core.Services;
 
 /// <summary>
-/// 
+/// Represents a service for managing vehicles and their states.
 /// </summary>
-/// <param name="registry"></param>
-/// <param name="commandService"></param>
+/// <param name="registry">The vehicle registry to be used by the service.</param>
+/// <param name="commandService">The vehicle command service to be used by the service.</param>
 public sealed class VehicleService(IVehicleRegistry registry, IVehicleCommandService commandService) : IVehicleService
 {
     /// <inheritdoc />

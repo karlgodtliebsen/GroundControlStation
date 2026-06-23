@@ -14,7 +14,7 @@ public interface IDomainEventHub : IEventHub
     /// <param name="handler"></param>
     /// <typeparam name="T"></typeparam>
     /// <returns></returns>
-    IDisposable SubscribeDomainEventAsync<T>(Func<IDomainEvent, CancellationToken, Task> handler) where T : IDomainEvent;
+    IDisposable SubscribeDomainEventAsync<T>(Func<T, CancellationToken, Task> handler) where T : IDomainEvent;
 
     /// <summary>
     /// Subscribes For the DomainEvent specified Func signature
@@ -22,7 +22,7 @@ public interface IDomainEventHub : IEventHub
     /// <param name="handler"></param>
     /// <typeparam name="T"></typeparam>
     /// <returns></returns>
-    IDisposable SubscribeDomainEvent<T>(Action<IDomainEvent> handler) where T : IDomainEvent;
+    IDisposable SubscribeDomainEvent<T>(Action<T> handler) where T : IDomainEvent;
 
     /// <summary>
     /// Publish DomainEvent Async
@@ -30,7 +30,7 @@ public interface IDomainEventHub : IEventHub
     /// <param name="data"></param>
     /// <param name="cancellationToken"></param>
     /// <returns></returns>
-    Task PublishDomainEventAsync(IDomainEvent data, CancellationToken cancellationToken = default);
+    Task PublishDomainEventAsync<T>(T data, CancellationToken cancellationToken = default) where T : IDomainEvent;
 
 
     /// <summary>
@@ -38,5 +38,5 @@ public interface IDomainEventHub : IEventHub
     /// </summary>
     /// <param name="data"></param>
     /// <returns></returns>
-    void PublishDomainEvent(IDomainEvent data);
+    void PublishDomainEvent<T>(T data) where T : IDomainEvent;
 }

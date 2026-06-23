@@ -32,6 +32,7 @@
     <ItemGroup>
         <PackageReference Include="CommunityToolkit.Maui" />
         <PackageReference Include="CommunityToolkit.Mvvm" />
+        <PackageReference Include="Riok.Mapperly" />
         <PackageReference Include="SkiaSharp.Views.Maui.Controls" />
         <PackageReference Include="Mapsui" />
         <PackageReference Include="Mapsui.Maui" />

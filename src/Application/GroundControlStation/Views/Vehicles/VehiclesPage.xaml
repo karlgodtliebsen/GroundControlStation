@@ -13,12 +13,11 @@
         <vehicles:VehiclesPageViewModel/>
     </uranium:UraniumContentPage.BindingContext>-->
 
-    <uranium:GridLayout  RowCount="2"
+    <uranium:GridLayout  RowCount="1"
                          ColumnCount="1" >
 
-        <material:DataGrid ItemsSource="{Binding VehicleSessions}" UseAutoColumns="True" Margin="30" />
-
-        <material:DataGrid ItemsSource="{Binding VehicleStates}" UseAutoColumns="True" Margin="30" />
-
+        <Border StyleClass="SurfaceContainer, Rounded" StrokeThickness="0">
+            <StackLayout x:Name="VehiclesView" ></StackLayout>
+        </Border>
     </uranium:GridLayout>
 </uranium:UraniumContentPage>

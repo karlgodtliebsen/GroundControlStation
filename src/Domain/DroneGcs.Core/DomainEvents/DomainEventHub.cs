@@ -12,25 +12,25 @@ namespace DroneGcs.Core.DomainEvents;
 public class DomainEventHub(ILogger<EventHub> logger) : EventHub(logger), IDomainEventHub
 {
     /// <inheritdoc/>
-    public virtual IDisposable SubscribeDomainEventAsync<T>(Func<IDomainEvent, CancellationToken, Task> handler) where T : IDomainEvent
+    public virtual IDisposable SubscribeDomainEventAsync<T>(Func<T, CancellationToken, Task> handler) where T : IDomainEvent
     {
         var eventName = typeof(T).FullName!;
-        return SubscribeAsync<IDomainEvent>(eventName, handler);
+        return SubscribeAsync<T>(eventName, handler);
     }
 
 
     /// <inheritdoc/>
-    public virtual IDisposable SubscribeDomainEvent<T>(Action<IDomainEvent> handler) where T : IDomainEvent
+    public virtual IDisposable SubscribeDomainEvent<T>(Action<T> handler) where T : IDomainEvent
     {
         var eventName = typeof(T).FullName!;
-        return Subscribe<IDomainEvent>(eventName, handler);
+        return Subscribe<T>(eventName, handler);
     }
 
     /// <inheritdoc/>
-    public virtual async Task PublishDomainEventAsync(IDomainEvent data, CancellationToken cancellationToken = default)
+    public virtual async Task PublishDomainEventAsync<T>(T data, CancellationToken cancellationToken = default) where T : IDomainEvent
     {
         var eventName = data.Name;
-        var key = KeyGenerator.GetEventKey<IDomainEvent>(eventName);
+        var key = KeyGenerator.GetEventKey<T>(eventName);
 
         await PublishAsync<IDomainEvent>(key, eventName, data, cancellationToken);
         eventName = data.GetType().FullName!;
@@ -38,12 +38,12 @@ public class DomainEventHub(ILogger<EventHub> logger) : EventHub(logger), IDomai
     }
 
     /// <inheritdoc/>
-    public virtual void PublishDomainEvent(IDomainEvent data)
+    public virtual void PublishDomainEvent<T>(T data) where T : IDomainEvent
     {
         var eventName = data.Name;
-        var key = KeyGenerator.GetEventKey<IDomainEvent>(eventName);
+        var key = KeyGenerator.GetEventKey<T>(eventName);
 
-        Publish<IDomainEvent>(key, data);
+        Publish<T>(key, data);
 
         eventName = data.GetType().FullName!;
         Publish(eventName, data);

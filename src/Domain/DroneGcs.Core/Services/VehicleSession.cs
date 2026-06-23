@@ -170,7 +170,6 @@ public class VehicleSession(VehicleState initialState)
         };
     }
 
-
     /// <summary>
     /// Applies a status text message to the vehicle's state.
     /// </summary>

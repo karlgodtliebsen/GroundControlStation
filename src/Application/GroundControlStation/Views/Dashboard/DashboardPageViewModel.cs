@@ -1,11 +1,15 @@
 ﻿using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 
+using DroneGcs.Core.Commands;
+using DroneGcs.Core.Models;
 using DroneGcs.Core.Services;
 
 using DroneGs.MavLink.Services;
 
 using GroundControlStationApp.Configuration;
+
+using Microsoft.Extensions.Logging;
 
 namespace GroundControlStationApp.Views.Dashboard;
 
@@ -15,58 +19,127 @@ namespace GroundControlStationApp.Views.Dashboard;
 public partial class DashboardPageViewModel : ObservableObject
 {
     private readonly IMavLinkConnection connection = null!;
+    private readonly IVehicleConnectionMonitor monitor;
+    private readonly IVehicleCommandService vehicleCommandService;
     private readonly IVehicleMessagePump messagePump = null!;
-    private readonly ICommandService commandService = null!;
+    private readonly IVehicleService vehicleService;
     private readonly InitializeSitl initializeSitl = null!;
+    private readonly CancellationTokenSource cancellationTokenSource;
+    private readonly ILogger<DashboardPageViewModel> logger;
 
-    [ObservableProperty] public partial string SelectedCommand { get; set; } = null!;
-    [ObservableProperty] public partial string CommandName { get; set; } = null!;
+    //[ObservableProperty] public partial string SelectedCommand { get; set; } = null!;
 
-    /// <summary>
-    /// Gets the list of available commands.
-    /// </summary>
-    public IList<string> Commands { get; } =
-    [
-        "help", "vehicles", "state", "arm", "disarm", "mode"
-    ];
+    ///// <summary>
+    ///// Gets the list of available commands.
+    ///// </summary>
+    //public ObservableCollection<string> Items { get; } = ["help", "arm", "disarm"];
 
 
-    //partial void OnSelectedCommandChanged(string value)
+    //[RelayCommand]
+    //private void Execute()
     //{
-    //    var result = commandService.Run(value, CancellationToken.None);
+    //    _ = ExecuteCommandForAllVehicles(SelectedCommand, cancellationTokenSource.Token);
     //}
+
+    [RelayCommand]
+    private void Reset()
+    {
+        initializeSitl.Initialize(cancellationTokenSource.Token).WaitAsync(cancellationTokenSource.Token);
+    }
+
+    [RelayCommand]
+    private async Task Arm()
+    {
+        var vehicles = vehicleService.GetVehicles();
+        foreach (var vehicleState in vehicles)
+        {
+            await vehicleService.ArmAsync(vehicleState.VehicleId, cancellationTokenSource.Token);
+        }
+    }
+
+    [RelayCommand]
+    private async Task Disarm()
+    {
+        var vehicles = vehicleService.GetVehicles();
+        foreach (var vehicleState in vehicles)
+        {
+            await vehicleService.DisarmAsync(vehicleState.VehicleId, cancellationTokenSource.Token);
+        }
+    }
+
+    [RelayCommand]
+    private async Task Land()
+    {
+        var vehicles = vehicleService.GetVehicles();
+        foreach (var vehicleState in vehicles)
+        {
+            await vehicleCommandService.LandAsync(vehicleState, cancellationTokenSource.Token).ConfigureAwait(false);
+        }
+    }
+
+    [RelayCommand]
+    private async Task Rtl()
+    {
+        var vehicles = vehicleService.GetVehicles();
+        foreach (var vehicleState in vehicles)
+        {
+            await vehicleService.SetModeAsync(vehicleState.VehicleId, VehicleMode.Rtl, cancellationTokenSource.Token);
+        }
+    }
+
+    [RelayCommand]
+    private async Task Loiter()
+    {
+        var vehicles = vehicleService.GetVehicles();
+        foreach (var vehicleState in vehicles)
+        {
+            await vehicleService.SetModeAsync(vehicleState.VehicleId, VehicleMode.Loiter, cancellationTokenSource.Token);
+        }
+    }
 
 
     [RelayCommand]
-    private void Select()
+    private async Task Stabilize()
     {
-        SelectedCommand = Commands[1];
-
-        SelectedCommand = "arm 1:1";
-        _ = ExecuteCommandAsync(SelectedCommand, CancellationToken.None);
+        var vehicles = vehicleService.GetVehicles();
+        foreach (var vehicleState in vehicles)
+        {
+            await vehicleService.SetModeAsync(vehicleState.VehicleId, VehicleMode.Stabilize, cancellationTokenSource.Token);
+        }
     }
 
-    private async Task ExecuteCommandAsync(string line, CancellationToken cancellationToken)
+    [RelayCommand]
+    private async Task Guided()
     {
-        // var parts = line.Split(' ', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
-
-        var result = await commandService.Run(line, cancellationToken).ConfigureAwait(false);
+        var vehicles = vehicleService.GetVehicles();
+        foreach (var vehicleState in vehicles)
+        {
+            await vehicleService.SetModeAsync(vehicleState.VehicleId, VehicleMode.Guided, cancellationTokenSource.Token).ConfigureAwait(false);
+        }
     }
-
 
     /// <summary>
     /// Initializes a new instance of the <see cref="DashboardPageViewModel"/> class with the specified SITL initializer.
     /// </summary>
     /// <param name="initializeSitl">The SITL initializer to be used by the view model.</param>
     /// <param name="connection">The MAVLink connection to be used by the view model.</param>
+    /// <param name="monitor">The vehicle connection monitor to be used by the view model.</param>
+    /// <param name="vehicleCommandService">The vehicle command service to be used by the view model.</param>
     /// <param name="messagePump">The vehicle message pump to be used by the view model.</param>
-    /// <param name="commandService"></param>
-    public DashboardPageViewModel(IMavLinkConnection connection, IVehicleMessagePump messagePump, ICommandService commandService, InitializeSitl initializeSitl)
+    /// <param name="vehicleService">The vehicle service to be used by the view model.</param>
+    /// <param name="cancellationTokenSource">The cancellation token source to be used by the view model.</param>
+    /// <param name="logger">The logger to be used by the view model.</param>
+    public DashboardPageViewModel(IMavLinkConnection connection, IVehicleConnectionMonitor monitor, IVehicleCommandService vehicleCommandService, IVehicleMessagePump messagePump, IVehicleService vehicleService,
+        InitializeSitl initializeSitl, CancellationTokenSource cancellationTokenSource, ILogger<DashboardPageViewModel> logger)
     {
         this.connection = connection;
+        this.monitor = monitor;
+        this.vehicleCommandService = vehicleCommandService;
         this.messagePump = messagePump;
-        this.commandService = commandService;
+        this.vehicleService = vehicleService;
         this.initializeSitl = initializeSitl;
+        this.cancellationTokenSource = cancellationTokenSource;
+        this.logger = logger;
         SetupSubscriptions();
     }
 
@@ -76,12 +149,21 @@ public partial class DashboardPageViewModel : ObservableObject
     /// </summary>
     private void SetupSubscriptions()
     {
+        var cancellationToken = cancellationTokenSource.Token;
         var conn = connection;
         var mp = messagePump;
-        _ = Task.Run(() => conn.StartAsync(CancellationToken.None), CancellationToken.None);
-        _ = Task.Run(() => mp.StartAsync(CancellationToken.None), CancellationToken.None);
+        _ = Task.Run(() => conn.StartAsync(cancellationToken), cancellationToken);
+        _ = Task.Run(() => mp.StartAsync(cancellationToken), cancellationToken);
 
-        initializeSitl.Initialize(CancellationToken.None).WaitAsync(CancellationToken.None);
+        _ = Task.Run(async () =>
+        {
+            while (!cancellationToken.IsCancellationRequested)
+            {
+                monitor.UpdateConnectionStates();
+                await Task.Delay(1000, cancellationToken).ConfigureAwait(false);
+            }
+        }, cancellationToken);
+
 
         //eventHub.SubscribeDomainEvent<VehicleArmed>((m) => OnVehicleArmed((VehicleArmed)m));
         //eventHub.SubscribeDomainEvent<VehicleDisarmed>((m) => OnVehicleDisarmed((VehicleDisarmed)m));

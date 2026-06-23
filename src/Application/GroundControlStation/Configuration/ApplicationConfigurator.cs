@@ -71,7 +71,11 @@ public static class ApplicationConfigurator
         services.TryAddSingleton(stateService);
         services.AddViewsConfiguration();
         services.TryAddSingleton<InitializeSitl>();
+        services.TryAddSingleton<ModelMapper>();
         services.TryAddSingleton<AppViewModels.ThemeChangeViewModel>();
+
+        services.TryAddSingleton(new CancellationTokenSource());
+
 
         services
             .AddLibraryServices()
@@ -107,8 +111,8 @@ public static class ApplicationConfigurator
         services.TryAddSingleton<ConnectPopup>();
         services.TryAddSingleton<ConnectPopupViewModel>();
 
-        services.TryAddSingleton<VehiclesViewModel>();
-        services.TryAddSingleton<VehiclesView>();
+        services.TryAddTransient<VehiclesViewModel>();
+        services.TryAddTransient<VehiclesView>();
 
         services.TryAddSingleton<VehiclesPageViewModel>();
         services.TryAddSingleton<VehiclesPage>();

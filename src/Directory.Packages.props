@@ -27,7 +27,7 @@
     <PackageVersion Include="System.IO.Ports" Version="10.0.9" />
     <!--Other-->
     <PackageVersion Include="DynamicData" Version="9.4.31" />
-    <PackageVersion Include="Riok.Mapperly" Version="5.0.0-next.1" />
+    <PackageVersion Include="Riok.Mapperly" Version="4.3.1" />
     <PackageVersion Include="Ulid" Version="1.4.1" />
     <!--<PackageVersion Include="ReactiveUI.SourceGenerators" Version="19.5.1" />-->
     <!--MAUI-->
