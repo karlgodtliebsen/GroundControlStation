@@ -6,6 +6,17 @@
 public class TransportEndpoint
 {
     /// <summary>
+    /// The name of the transport endpoint.
+    /// </summary>
+    public string Name { get; set; }
+
+    /// <summary>
+    /// The expected ID of the transport endpoint.
+    /// </summary>
+    public string ExpectedId { get; set; }
+
+
+    /// <summary>
     /// The port number of the remote endpoint.
     /// </summary>
     public int RemotePort { get; set; }
@@ -37,19 +48,21 @@ public class TransportEndpoint
     public int ReceiveBufferSize { get; }
 
     /// <summary>
-    /// Initializes a new instance of the <see cref="TransportEndpoint"/> class with the specified remote port, remote host, and local port.  
+    /// Initializes a new instance of the <see cref="TransportEndpoint"/> class with the specified protocol, remote port, remote host, local port, local host, and receive buffer size.
     /// </summary>
-    /// <param name="protocol"></param>
-    /// <param name="remotePort"></param>
-    /// <param name="remoteHost"></param>
-    /// <param name="localPort"></param>
-    /// <param name="receiveBufferSize"></param>
-    public TransportEndpoint(string protocol = "udp", int remotePort = 14551, string remoteHost = "127.0.0.1", int localPort = 14550, int receiveBufferSize = 512)
+    /// <param name="protocol">The protocol used by the transport endpoint (e.g., "udp", "tcp").</param>
+    /// <param name="remotePort">The port number of the remote endpoint.</param>
+    /// <param name="remoteHost">The host address of the remote endpoint.</param>
+    /// <param name="localPort">The port number of the local endpoint.</param>
+    /// <param name="localHost">The host address of the local endpoint.</param>
+    /// <param name="receiveBufferSize">The size of the receive buffer.</param>
+    public TransportEndpoint(string protocol = "udp", int remotePort = 14551, string remoteHost = "127.0.0.1", int localPort = 14550, string localHost = "0.0.0.0", int receiveBufferSize = 512)
     {
         Protocol = protocol;
         RemotePort = remotePort;
         RemoteHost = remoteHost;
         LocalPort = localPort;
+        LocalHost = localHost;
         ReceiveBufferSize = receiveBufferSize;
     }
 }

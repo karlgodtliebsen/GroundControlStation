@@ -1,4 +1,6 @@
-﻿namespace DroneGs.MavLink.Services;
+﻿using System.Net;
+
+namespace DroneGs.MavLink.Services;
 
 //Frame parser
 //Frame serializer
@@ -22,7 +24,8 @@ public interface IMavLinkConnection : IAsyncDisposable
     /// Sends raw MAVLink data to the connected device.
     /// </summary>
     /// <param name="data">The raw MAVLink data to send.</param>
+    /// <param name="ipEndpoint">The IP endpoint to send the data to.</param>
     /// <param name="cancellationToken">A token to monitor for cancellation requests.</param>
     /// <returns>A task that represents the asynchronous send operation.</returns>
-    ValueTask SendRawAsync(ReadOnlyMemory<byte> data, CancellationToken cancellationToken = default);
+    ValueTask SendRawAsync(ReadOnlyMemory<byte> data, IPEndPoint ipEndpoint, CancellationToken cancellationToken = default);
 }

@@ -1,4 +1,8 @@
-﻿namespace DroneGs.MavLink.Services;
+﻿using System.Net;
+
+using DroneGcs.Transport;
+
+namespace DroneGs.MavLink.Services;
 
 /// <summary>
 /// Parser for MAVLink v2 frames.
@@ -24,7 +28,7 @@ public sealed class MavLinkV2FrameParser : IMavLinkFrameParser
     }
 
     /// <inheritdoc />
-    public IReadOnlyList<MavLinkFrame> Parse(ReadOnlySpan<byte> data, DateTimeOffset receivedAt)
+    public IReadOnlyList<MavLinkFrame> Parse(ReadOnlySpan<byte> data, MavLinkEndpoint? remoteEndpoint, DateTimeOffset receivedAt)
     {
         foreach (var b in data)
         {
@@ -33,7 +37,12 @@ public sealed class MavLinkV2FrameParser : IMavLinkFrameParser
 
         var frames = new List<MavLinkFrame>();
 
-        while (TryReadFrame(receivedAt, out var frame))
+        var localAddress = string.IsNullOrWhiteSpace(remoteEndpoint.Address)
+            ? IPAddress.Any
+            : IPAddress.Parse(remoteEndpoint.Address);
+        var ipEndPoint = new IPEndPoint(localAddress, remoteEndpoint.Port ?? 0);
+
+        while (TryReadFrame(ipEndPoint, receivedAt, out var frame))
         {
             if (frame is not null)
             {
@@ -44,7 +53,28 @@ public sealed class MavLinkV2FrameParser : IMavLinkFrameParser
         return frames;
     }
 
-    private bool TryReadFrame(DateTimeOffset receivedAt, out MavLinkFrame? frame)
+    /// <inheritdoc />
+    public IReadOnlyList<MavLinkFrame> Parse(ReadOnlySpan<byte> data, IPEndPoint ipEndPoint, DateTimeOffset receivedAt)
+    {
+        foreach (var b in data)
+        {
+            buffer.Add(b);
+        }
+
+        var frames = new List<MavLinkFrame>();
+
+        while (TryReadFrame(ipEndPoint, receivedAt, out var frame))
+        {
+            if (frame is not null)
+            {
+                frames.Add(frame);
+            }
+        }
+
+        return frames;
+    }
+
+    private bool TryReadFrame(IPEndPoint ipEndPoint, DateTimeOffset receivedAt, out MavLinkFrame? frame)
     {
         frame = null;
 
@@ -108,6 +138,7 @@ public sealed class MavLinkV2FrameParser : IMavLinkFrameParser
         frame = new MavLinkFrame(
             systemId,
             componentId,
+            ipEndPoint,
             messageId,
             sequence,
             payload,

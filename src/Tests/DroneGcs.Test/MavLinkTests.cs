@@ -1,7 +1,10 @@
-﻿using Domain.Library.EventHub.Abstractions;
+﻿using System.Net;
+
+using Domain.Library.EventHub.Abstractions;
 
 using DroneGcs.Simulator;
 using DroneGcs.Test.Configuration;
+using DroneGcs.Transport;
 
 using DroneGs.MavLink;
 using DroneGs.MavLink.Client;
@@ -202,8 +205,8 @@ public class MavLinkTests
         var provider = new CommonMavLinkCrcExtraProvider();
         var frame = MavLinkKnownFrames.CreateHeartbeatV2(provider);
         frame[^1] ^= 0xFF;
-
-        var frames = parser.Parse(frame, DateTimeOffset.UtcNow);
+        var remoteMavLink = new MavLinkEndpoint("udp", IPAddress.Loopback.ToString(), 14550);
+        var frames = parser.Parse(frame, remoteMavLink, DateTimeOffset.UtcNow);
 
         Assert.Empty(frames);
     }

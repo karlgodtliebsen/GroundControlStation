@@ -20,6 +20,7 @@ public sealed class HeartbeatVehicleHandler(IVehicleRegistry vehicleRegistry, IL
 
         var result = vehicleRegistry.RegisterOrUpdateHeartbeat(
             vehicleId,
+            message.IPEndPoint,
             message.CustomMode,
             message.VehicleType,
             message.Autopilot,

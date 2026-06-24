@@ -1,4 +1,6 @@
-﻿namespace DroneGcs.Simulator.SmokeTests;
+﻿using System.Net;
+
+namespace DroneGcs.Simulator.SmokeTests;
 
 /// <summary>
 /// Service for performing transport smoke tests.
@@ -9,9 +11,10 @@ public interface ITransportSmokeTestService
     /// Sends a probe payload to the transport endpoint.
     /// </summary>
     /// <param name="payload"></param>
+    /// <param name="ipEndPoint"></param>
     /// <param name="cancellationToken"></param>
     /// <returns></returns>
-    Task SendProbeAsync(ReadOnlyMemory<byte> payload, CancellationToken cancellationToken);
+    Task SendProbeAsync(ReadOnlyMemory<byte> payload, IPEndPoint ipEndPoint, CancellationToken cancellationToken);
 
     /// <summary>
     /// Waits for data to be received from the transport endpoint.

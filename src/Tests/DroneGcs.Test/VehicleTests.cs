@@ -1,4 +1,5 @@
 ﻿using System.Buffers.Binary;
+using System.Net;
 
 using Domain.Library.EventHub.Abstractions;
 using Domain.Library.Factory.Domain.Abstractions;
@@ -32,6 +33,7 @@ public class VehicleTests
 {
     private readonly ITestOutputHelper output;
     private readonly IServiceProvider serviceProvider;
+    private readonly IPEndPoint ipEndPoint;
 
     /// <summary>
     /// Initializes a new instance of the <see cref="VehicleTests"/> class.
@@ -46,6 +48,15 @@ public class VehicleTests
 
         serviceProvider = services.BuildServiceProvider();
         serviceProvider.UseTestConfiguration();
+
+        var endPoint = serviceProvider.GetRequiredService<IOptions<TransportEndpoint>>().Value;
+        var localPort = endPoint.LocalPort;
+        var localHost = endPoint.LocalHost;
+        var localAddress = string.IsNullOrWhiteSpace(localHost)
+            ? IPAddress.Any
+            : IPAddress.Parse(localHost);
+
+        ipEndPoint = new IPEndPoint(localAddress, localPort);
     }
 
     /// <summary>
@@ -57,10 +68,11 @@ public class VehicleTests
         var domainFactory = serviceProvider.GetRequiredService<IDomainFactory>();
         var registry = serviceProvider.GetRequiredService<IVehicleRegistry>();
         var handler = domainFactory.Create<IHeartbeatVehicleHandler, IVehicleRegistry>(registry);
-
+        var endPoint = serviceProvider.GetRequiredService<IOptions<TransportEndpoint>>().Value;
         var heartbeat = new HeartbeatMessage(
             1,
             1,
+            ipEndPoint,
             0,
             2,
             3,
@@ -137,11 +149,11 @@ public class VehicleTests
         var handler = domainFactory.Create<IHeartbeatVehicleHandler, IVehicleRegistry>(registry);
 
         var first = new HeartbeatMessage(
-            1, 1, 0, 2, 3, 0, 4, 3,
+            1, 1, ipEndPoint, 0, 2, 3, 0, 4, 3,
             DateTimeOffset.UtcNow);
 
         var second = new HeartbeatMessage(
-            1, 1, 42, 2, 3, 81, 4, 3,
+            1, 1, ipEndPoint, 42, 2, 3, 81, 4, 3,
             DateTimeOffset.UtcNow.AddSeconds(1));
 
         var vehicle1 = handler.Handle(first);
@@ -197,7 +209,7 @@ public class VehicleTests
         var vehicleId = new VehicleId(1, 1);
 
         registry.RegisterOrUpdateHeartbeat(
-            vehicleId,
+            vehicleId, ipEndPoint,
             0,
             2,
             3,
@@ -211,7 +223,7 @@ public class VehicleTests
         handler.Handle(
             new GlobalPositionIntMessage(
                 1,
-                1,
+                1, ipEndPoint,
                 56.1629,
                 10.2039,
                 12.5,
@@ -236,7 +248,7 @@ public class VehicleTests
         var vehicleId = new VehicleId(1, 1);
 
         registry.RegisterOrUpdateHeartbeat(
-            vehicleId,
+            vehicleId, ipEndPoint,
             0,
             2,
             3,
@@ -250,7 +262,7 @@ public class VehicleTests
         handler.Handle(
             new SysStatusMessage(
                 1,
-                1,
+                1, ipEndPoint,
                 56,
                 (float)10.0,
                 DateTimeOffset.UtcNow));
@@ -273,7 +285,7 @@ public class VehicleTests
         var vehicleId = new VehicleId(1, 1);
 
         registry.RegisterOrUpdateHeartbeat(
-            vehicleId,
+            vehicleId, ipEndPoint,
             0,
             2,
             3,
@@ -287,7 +299,7 @@ public class VehicleTests
         handler.Handle(
             new AttitudeMessage(
                 1,
-                1,
+                1, ipEndPoint,
                 56.1629,
                 10.2039,
                 12.5,
@@ -314,7 +326,7 @@ public class VehicleTests
         var receivedAt = DateTimeOffset.UtcNow;
 
         var vehicleRegistryResult = registry.RegisterOrUpdateHeartbeat(
-            new VehicleId(1, 1),
+            new VehicleId(1, 1), ipEndPoint,
             0,
             2,
             3,
@@ -340,7 +352,7 @@ public class VehicleTests
         var receivedAt = DateTimeOffset.UtcNow;
 
         var vehicleRegistryResult = registry.RegisterOrUpdateHeartbeat(
-            new VehicleId(1, 1),
+            new VehicleId(1, 1), ipEndPoint,
             0,
             2,
             3,
@@ -365,7 +377,7 @@ public class VehicleTests
         var receivedAt = DateTimeOffset.UtcNow;
 
         var vehicleRegistryResult = registry.RegisterOrUpdateHeartbeat(
-            new VehicleId(1, 1),
+            new VehicleId(1, 1), ipEndPoint,
             0,
             2,
             3,
@@ -393,7 +405,7 @@ public class VehicleTests
         var vehicleId = new VehicleId(1, 1);
 
         var vehicleRegistryResult = registry.RegisterOrUpdateHeartbeat(
-            vehicleId,
+            vehicleId, ipEndPoint,
             0,
             2,
             3,
@@ -407,7 +419,7 @@ public class VehicleTests
         Assert.Equal(VehicleConnectionState.Degraded, vehicleRegistryResult.Vehicle.State.ConnectionState);
 
         registry.RegisterOrUpdateHeartbeat(
-            vehicleId,
+            vehicleId, ipEndPoint,
             0,
             2,
             3,
@@ -434,7 +446,7 @@ public class VehicleTests
         var vehicleId = new VehicleId(1, 1);
 
         var vehicleRegistryResult = registry.RegisterOrUpdateHeartbeat(
-            vehicleId,
+            vehicleId, ipEndPoint,
             0,
             2,
             3,
@@ -449,7 +461,7 @@ public class VehicleTests
             VehicleConnectionState.Offline, vehicleRegistryResult.Vehicle.State.ConnectionState);
 
         registry.RegisterOrUpdateHeartbeat(
-            vehicleId,
+            vehicleId, ipEndPoint,
             0,
             2,
             3,
@@ -513,6 +525,7 @@ public class VehicleTests
         var frame = new MavLinkFrame(
             1,
             1,
+            ipEndPoint,
             MessageIds.CommandAck,
             0,
             payload,
@@ -574,7 +587,7 @@ public class VehicleTests
 
         var encoder = serviceProvider.GetRequiredService<IMavLinkCommandEncoder>();
         var armCommand = encoder.EncodeArmDisarm(1, 1, true);
-        await connection.SendRawAsync(armCommand, TestContext.Current.CancellationToken);
+        await connection.SendRawAsync(armCommand, ipEndPoint, TestContext.Current.CancellationToken);
 
 
         await ts.Task.WaitAsync(TimeSpan.FromSeconds(5), TestContext.Current.CancellationToken);
@@ -596,7 +609,7 @@ public class VehicleTests
         var registry = serviceProvider.GetRequiredService<IVehicleRegistry>();
         var handler = serviceProvider.GetRequiredService<IHeartbeatVehicleHandler>();
         var heartbeat = new HeartbeatMessage(
-            1, 1,
+            1, 1, ipEndPoint,
             0,
             2,
             3,
@@ -621,7 +634,7 @@ public class VehicleTests
         var handler = domainFactory.Create<IHeartbeatVehicleHandler, IVehicleRegistry>(registry);
 
         var heartbeat = new HeartbeatMessage(
-            1, 1,
+            1, 1, ipEndPoint,
             4,
             2,
             3,
@@ -685,7 +698,7 @@ public class VehicleTests
     }
 
 
-    private static VehicleSession CreateVehicleSession()
+    private VehicleSession CreateVehicleSession()
     {
         var state = new VehicleState(
             new VehicleId(1, 1),
@@ -708,7 +721,7 @@ public class VehicleTests
             null,
             null);
 
-        return new VehicleSession(state);
+        return new VehicleSession(state, ipEndPoint);
     }
 
     private static async Task EventuallyAsync(Action assertion, TimeSpan timeout, CancellationToken cancellationToken)

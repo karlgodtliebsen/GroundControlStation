@@ -1,4 +1,6 @@
-﻿using DroneGcs.Core.Services;
+﻿using System.Net;
+
+using DroneGcs.Core.Services;
 
 namespace DroneGcs.Simulator;
 
@@ -17,6 +19,7 @@ public static class SimulatedVehicleStateExtensions
     {
         var vehicleRegistryResult = registry.RegisterOrUpdateHeartbeat(
             simulated.VehicleId,
+            new IPEndPoint(IPAddress.Any, 0),
             simulated.CustomMode,
             simulated.VehicleType,
             simulated.Autopilot,
@@ -28,12 +31,16 @@ public static class SimulatedVehicleStateExtensions
         if (simulated.Latitude is not null &&
             simulated.Longitude is not null &&
             simulated.Altitude is not null)
+        {
             vehicleRegistryResult.Vehicle.ApplyPosition(simulated.Latitude.Value, simulated.Longitude.Value, simulated.Altitude.Value);
+        }
 
         if (simulated.Roll is not null &&
             simulated.Pitch is not null &&
             simulated.Yaw is not null)
+        {
             vehicleRegistryResult.Vehicle.ApplyAttitude(simulated.Roll.Value, simulated.Pitch.Value, simulated.Yaw.Value);
+        }
 
         vehicleRegistryResult.Vehicle.ApplyBattery(simulated.BatteryRemaining, simulated.BatteryVoltage);
 

@@ -32,7 +32,9 @@ public sealed class VehicleCommandService(
     {
         return state.ConnectionState != VehicleConnectionState.Online
             ? new VehicleCommandResponse(state.VehicleId, VehicleCommandResult.Denied, dateTimeProvider.UtcNow)
-            : !state.IsArmed ? new VehicleCommandResponse(state.VehicleId, VehicleCommandResult.Denied, dateTimeProvider.UtcNow) : null;
+            : !state.IsArmed
+                ? new VehicleCommandResponse(state.VehicleId, VehicleCommandResult.Denied, dateTimeProvider.UtcNow)
+                : null;
     }
 
 
@@ -127,13 +129,15 @@ public sealed class VehicleCommandService(
             return validation;
         }
 
+        var vehicleSession = registry.GetRequired(vehicleId)!;
+
         var customMode = ArduCopterModeMapper.ToCustomMode(mode);
 
         var waitForAckTask = commandAckTracker.WaitForAckAsync(vehicleId, MavLinkCommandIds.DoSetMode, CommandAckTimeout, cancellationToken);
 
         var packet = encoder.EncodeSetMode(vehicleId.SystemId, vehicleId.ComponentId, customMode);
 
-        await connection.SendRawAsync(packet, cancellationToken);
+        await connection.SendRawAsync(packet, vehicleSession.IpEndPoint, cancellationToken);
 
         try
         {
@@ -157,11 +161,13 @@ public sealed class VehicleCommandService(
             return validation;
         }
 
+        var vehicleSession = registry.GetRequired(vehicleId)!;
+
         var waitForAckTask = commandAckTracker.WaitForAckAsync(vehicleId, MavLinkCommandIds.ComponentArmDisarm, CommandAckTimeout, cancellationToken);
 
         var packet = encoder.EncodeArmDisarm(vehicleId.SystemId, vehicleId.ComponentId, arm);
 
-        await connection.SendRawAsync(packet, cancellationToken).ConfigureAwait(false);
+        await connection.SendRawAsync(packet, vehicleSession.IpEndPoint, cancellationToken).ConfigureAwait(false);
 
         try
         {

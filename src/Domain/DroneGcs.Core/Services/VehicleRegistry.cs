@@ -1,4 +1,6 @@
-﻿using DroneGcs.Core.DomainEvents;
+﻿using System.Net;
+
+using DroneGcs.Core.DomainEvents;
 using DroneGcs.Core.Models;
 
 using Microsoft.Extensions.Logging;
@@ -54,6 +56,7 @@ public sealed class VehicleRegistry(IDomainEventHub eventHub, ILogger<VehicleReg
     /// Registers a new vehicle or updates an existing vehicle's state based on a received heartbeat message. 
     /// </summary>
     /// <param name="vehicleId"></param>
+    /// <param name="ipEndPoint">The IP endpoint of the vehicle.</param>
     /// <param name="customMode"></param>
     /// <param name="vehicleType"></param>
     /// <param name="autopilot"></param>
@@ -64,6 +67,7 @@ public sealed class VehicleRegistry(IDomainEventHub eventHub, ILogger<VehicleReg
     /// <returns>The updated or newly registered vehicle session.</returns>
     public VehicleRegistryResult RegisterOrUpdateHeartbeat(
         VehicleId vehicleId,
+        IPEndPoint ipEndPoint,
         uint customMode,
         byte vehicleType,
         byte autopilot,
@@ -95,8 +99,9 @@ public sealed class VehicleRegistry(IDomainEventHub eventHub, ILogger<VehicleReg
                 null,
                 null);
 
+            //IPEndPoint ipEndpoint,
 
-            session = new VehicleSession(state);
+            session = new VehicleSession(state, ipEndPoint);
             vehicles.Add(vehicleId, session);
             logger.LogTrace("Registered new vehicle: {VehicleId}", vehicleId);
         }

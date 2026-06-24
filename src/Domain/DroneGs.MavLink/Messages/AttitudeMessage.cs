@@ -1,4 +1,6 @@
-﻿namespace DroneGs.MavLink.Messages;
+﻿using System.Net;
+
+namespace DroneGs.MavLink.Messages;
 
 /// <summary>
 /// Represents the attitude of the drone, including roll, pitch, and yaw angles.
@@ -8,10 +10,12 @@
 /// <param name="Roll">The roll angle in radians.</param>
 /// <param name="Pitch">The pitch angle in radians.</param>
 /// <param name="Yaw">The yaw angle in radians.</param>
+/// <param name="IPEndPoint">The IP endpoint from which the message was received.</param>
 /// <param name="ReceivedAt">The timestamp when the message was received.</param>
 public sealed record AttitudeMessage(
     byte SystemId,
     byte ComponentId,
+    IPEndPoint IPEndPoint,
     double Roll,
     double Pitch,
     double Yaw,
@@ -20,4 +24,5 @@ public sealed record AttitudeMessage(
         SystemId,
         ComponentId,
         MessageIds.Attitude,
+        IPEndPoint,
         ReceivedAt);

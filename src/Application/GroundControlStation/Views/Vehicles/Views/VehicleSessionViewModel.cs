@@ -1,4 +1,6 @@
-﻿using CommunityToolkit.Mvvm.ComponentModel;
+﻿using System.Net;
+
+using CommunityToolkit.Mvvm.ComponentModel;
 
 using DroneGcs.Core.Models;
 
@@ -14,11 +16,13 @@ public partial class VehicleSessionViewModel : ObservableObject
     /// </summary>
     public VehicleId Id { get; set; }
 
+
+    [ObservableProperty] public partial IPEndPoint IpEndPoint { get; set; } = new(IPAddress.Any, 0);
+
+
     /// <summary>
     /// Gets the notifications for the vehicle.
     /// </summary>
-    //public ObservableCollection<string> Notifications { get; set; } = [];
-
     [ObservableProperty]
     public partial string Notifications { get; set; } = string.Empty;
 }

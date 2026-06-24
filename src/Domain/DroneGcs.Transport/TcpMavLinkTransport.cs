@@ -1,5 +1,5 @@
-﻿using System.Net.Sockets;
-
+﻿using System.Net;
+using System.Net.Sockets;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 
@@ -31,17 +31,9 @@ public sealed class TcpMavLinkTransport : IMavLinkTransport
 
         remoteHost = options.Value.RemoteHost;
         remotePort = options.Value.RemotePort;
-        if (string.IsNullOrWhiteSpace(remoteHost))
-        {
-            throw new ArgumentException(
-                "Remote host must be specified.",
-                nameof(remoteHost));
-        }
+        if (string.IsNullOrWhiteSpace(remoteHost)) throw new ArgumentException("Remote host must be specified.", nameof(remoteHost));
 
-        if (remotePort is <= 0 or > 65535)
-        {
-            throw new ArgumentOutOfRangeException(nameof(remotePort));
-        }
+        if (remotePort is <= 0 or > 65535) throw new ArgumentOutOfRangeException(nameof(remotePort));
 
         remoteEndpoint = new MavLinkEndpoint("tcp", remoteHost, remotePort);
     }
@@ -59,10 +51,7 @@ public sealed class TcpMavLinkTransport : IMavLinkTransport
     {
         cancellationToken.ThrowIfCancellationRequested();
 
-        if (IsConnected)
-        {
-            return;
-        }
+        if (IsConnected) return;
 
         tcpClient = new TcpClient
         {
@@ -72,40 +61,35 @@ public sealed class TcpMavLinkTransport : IMavLinkTransport
         await tcpClient.ConnectAsync(remoteHost, remotePort, cancellationToken).ConfigureAwait(false);
 
         stream = tcpClient.GetStream();
-         logger.LogTrace("TCP transport connected to {RemoteEndPoint}", remoteEndpoint);
+        logger.LogTrace("TCP transport connected to {RemoteEndPoint}", remoteEndpoint);
     }
 
     /// <inheritdoc/>
     public async ValueTask<TransportReceiveResult> ReadAsync(Memory<byte> buffer, CancellationToken cancellationToken)
     {
-        if (!IsConnected || stream is null)
-        {
-            throw new InvalidOperationException("TCP transport is not connected.");
-        }
+        if (!IsConnected || stream is null) throw new InvalidOperationException("TCP transport is not connected.");
 
         var bytesRead = await stream.ReadAsync(buffer, cancellationToken).ConfigureAwait(false);
-         logger.LogTrace("TCP transport received {BytesRead} bytes from {RemoteEndPoint}", bytesRead, remoteEndpoint);
+        logger.LogTrace("TCP transport received {BytesRead} bytes from {RemoteEndPoint}", bytesRead, remoteEndpoint);
         return bytesRead == 0 ? throw new IOException("TCP connection was closed by the remote host.") : new TransportReceiveResult(bytesRead, remoteEndpoint);
     }
 
     /// <summary>
-    /// Write MAVLink data to the remote endpoint over TCP.
+    /// Write MAVLink data to the remote ipEndpoint over TCP.
     /// </summary>
     /// <param name="data"></param>
+    /// <param name="ipEndpoint"> </param>
     /// <param name="cancellationToken"></param>
     /// <exception cref="InvalidOperationException"></exception>
-    public async ValueTask WriteAsync(ReadOnlyMemory<byte> data, CancellationToken cancellationToken)
+    public async ValueTask WriteAsync(ReadOnlyMemory<byte> data, IPEndPoint ipEndpoint, CancellationToken cancellationToken)
     {
-        if (!IsConnected || stream is null)
-        {
-            throw new InvalidOperationException("TCP transport is not connected.");
-        }
+        if (!IsConnected || stream is null) throw new InvalidOperationException("TCP transport is not connected.");
 
         await stream.WriteAsync(data, cancellationToken).ConfigureAwait(false);
 
         await stream.FlushAsync(cancellationToken).ConfigureAwait(false);
 
-         logger.LogTrace("TCP transport sent {BytesSent} bytes to {RemoteEndPoint}", data.Length, remoteEndpoint);
+        logger.LogTrace("TCP transport sent {BytesSent} bytes to {RemoteEndPoint}", data.Length, remoteEndpoint);
     }
 
     /// <summary>
@@ -123,7 +107,7 @@ public sealed class TcpMavLinkTransport : IMavLinkTransport
         tcpClient?.Close();
         tcpClient?.Dispose();
         tcpClient = null;
-         logger.LogTrace("TCP transport disconnected from {RemoteEndPoint}", remoteEndpoint);
+        logger.LogTrace("TCP transport disconnected from {RemoteEndPoint}", remoteEndpoint);
         return Task.CompletedTask;
     }
 
@@ -136,6 +120,6 @@ public sealed class TcpMavLinkTransport : IMavLinkTransport
             .ConfigureAwait(false);
 
         GC.SuppressFinalize(this);
-         logger.LogTrace("TCP transport disposed for {RemoteEndPoint}", remoteEndpoint);
+        logger.LogTrace("TCP transport disposed for {RemoteEndPoint}", remoteEndpoint);
     }
 }

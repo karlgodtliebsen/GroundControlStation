@@ -27,20 +27,6 @@ public partial class DashboardPageViewModel : ObservableObject
     private readonly CancellationTokenSource cancellationTokenSource;
     private readonly ILogger<DashboardPageViewModel> logger;
 
-    //[ObservableProperty] public partial string SelectedCommand { get; set; } = null!;
-
-    ///// <summary>
-    ///// Gets the list of available commands.
-    ///// </summary>
-    //public ObservableCollection<string> Items { get; } = ["help", "arm", "disarm"];
-
-
-    //[RelayCommand]
-    //private void Execute()
-    //{
-    //    _ = ExecuteCommandForAllVehicles(SelectedCommand, cancellationTokenSource.Token);
-    //}
-
     [RelayCommand]
     private void Reset()
     {

@@ -1,4 +1,6 @@
-﻿using DroneGcs.Core.Models;
+﻿using System.Net;
+
+using DroneGcs.Core.Models;
 
 namespace DroneGcs.Core.Services;
 
@@ -32,6 +34,7 @@ public interface IVehicleRegistry
     /// Registers a new vehicle or updates an existing vehicle's state based on a received heartbeat message. 
     /// </summary>
     /// <param name="vehicleId">The unique identifier of the vehicle.</param>
+    /// <param name="ipEndPoint">The IP endpoint of the vehicle.</param>
     /// <param name="customMode">The custom mode of the vehicle.</param>
     /// <param name="vehicleType">The type of the vehicle.</param>
     /// <param name="autopilot">The autopilot type of the vehicle.</param>
@@ -42,6 +45,7 @@ public interface IVehicleRegistry
     /// <returns>The updated or newly registered vehicle session.</returns>
     VehicleRegistryResult RegisterOrUpdateHeartbeat(
         VehicleId vehicleId,
+        IPEndPoint ipEndPoint,
         uint customMode,
         byte vehicleType,
         byte autopilot,

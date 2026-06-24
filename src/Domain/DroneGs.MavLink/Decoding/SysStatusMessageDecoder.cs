@@ -43,6 +43,7 @@ public sealed class SysStatusMessageDecoder : IMavLinkMessageDecoder
         message = new SysStatusMessage(
             frame.SystemId,
             frame.ComponentId,
+            frame.IPEndPoint,
             batteryRemaining,
             voltage,
             frame.ReceivedAt);

@@ -1,4 +1,5 @@
-﻿using System.Net.Sockets;
+﻿using System.Net;
+using System.Net.Sockets;
 
 using Domain.Library.EventHub.Abstractions;
 
@@ -25,6 +26,7 @@ public class SmokeTestsDroneBridge
 {
     private readonly ITestOutputHelper output;
     private readonly IServiceProvider serviceProvider;
+    private readonly IPEndPoint ipEndPoint;
 
     /// <summary>
     /// Initializes a new instance of the <see cref="SmokeTestsDroneBridge"/> class.
@@ -41,19 +43,25 @@ public class SmokeTestsDroneBridge
         serviceProvider = services.BuildServiceProvider();
         serviceProvider.UseTestConfiguration();
 
-        var endPoint = serviceProvider.GetRequiredService<IOptions<TransportEndpoint>>();
-        endPoint.Value.LocalPort = 14550;
-        endPoint.Value.RemotePort = 14551;
+        var endPoint = serviceProvider.GetRequiredService<IOptions<TransportEndpoint>>().Value;
+        endPoint.LocalPort = 14550;
+        endPoint.RemotePort = 14551;
 
-        endPoint.Value.LocalHost = "0.0.0.0";
-        endPoint.Value.RemoteHost = "192.168.1.248";
+        endPoint.LocalHost = "0.0.0.0";
+        endPoint.RemoteHost = "192.168.1.248";
 
         //for tcp: 127.0.0.1 on port 5760
+        var localPort = endPoint.LocalPort;
+        var localHost = endPoint.LocalHost;
+        var localAddress = string.IsNullOrWhiteSpace(localHost)
+            ? IPAddress.Any
+            : IPAddress.Parse(localHost);
+        ipEndPoint = new IPEndPoint(localAddress, localPort);
 
         var logger = serviceProvider.GetRequiredService<ILogger<SmokeTestsDroneBridge>>();
 
-        logger.LogInformation($"Test configuration initialized. UDP local:  {endPoint.Value.LocalHost}:{endPoint.Value.LocalPort}");
-        logger.LogInformation($"Test configuration initialized. UDP remote: {endPoint.Value.RemoteHost}:{endPoint.Value.RemotePort}");
+        logger.LogInformation($"Test configuration initialized. UDP local:  {endPoint.LocalHost}:{endPoint.LocalPort}");
+        logger.LogInformation($"Test configuration initialized. UDP remote: {endPoint.RemoteHost}:{endPoint.RemotePort}");
     }
 
 
@@ -82,9 +90,7 @@ public class SmokeTestsDroneBridge
 
         var payload = TransportProbePayloads.CreateAsciiProbe();
 
-        await smokeTest.SendProbeAsync(
-            payload,
-            TestContext.Current.CancellationToken);
+        await smokeTest.SendProbeAsync(payload, ipEndPoint, TestContext.Current.CancellationToken);
 
         Assert.True(true);
     }
@@ -99,7 +105,7 @@ public class SmokeTestsDroneBridge
 
         var payload = TransportProbePayloads.CreateAsciiProbe();
 
-        await smokeTest.SendProbeAsync(payload, TestContext.Current.CancellationToken);
+        await smokeTest.SendProbeAsync(payload, ipEndPoint, TestContext.Current.CancellationToken);
 
         // This will only pass if something on the DroneBridge side sends data back.
         var result = await smokeTest.WaitForDataAsync(TimeSpan.FromSeconds(10), TestContext.Current.CancellationToken);

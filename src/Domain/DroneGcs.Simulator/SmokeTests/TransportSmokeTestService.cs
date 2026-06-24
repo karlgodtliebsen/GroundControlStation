@@ -1,4 +1,6 @@
-﻿using DroneGcs.Transport;
+﻿using System.Net;
+
+using DroneGcs.Transport;
 
 namespace DroneGcs.Simulator.SmokeTests;
 
@@ -9,18 +11,14 @@ namespace DroneGcs.Simulator.SmokeTests;
 public sealed class TransportSmokeTestService(IMavLinkTransport transport) : ITransportSmokeTestService, IAsyncDisposable
 {
     /// <inheritdoc/>
-    public async Task SendProbeAsync(
-        ReadOnlyMemory<byte> payload,
-        CancellationToken cancellationToken)
+    public async Task SendProbeAsync(ReadOnlyMemory<byte> payload, IPEndPoint ipEndPoint, CancellationToken cancellationToken)
     {
         if (!transport.IsConnected)
         {
-            await transport.ConnectAsync(cancellationToken)
-                .ConfigureAwait(false);
+            await transport.ConnectAsync(cancellationToken).ConfigureAwait(false);
         }
 
-        await transport.WriteAsync(payload, cancellationToken)
-            .ConfigureAwait(false);
+        await transport.WriteAsync(payload, ipEndPoint, cancellationToken).ConfigureAwait(false);
     }
 
     /// <inheritdoc/>
@@ -39,19 +37,11 @@ public sealed class TransportSmokeTestService(IMavLinkTransport transport) : ITr
 
         try
         {
-            var result = await transport
-                .ReadAsync(buffer, linkedCts.Token)
-                .ConfigureAwait(false);
+            var result = await transport.ReadAsync(buffer, linkedCts.Token).ConfigureAwait(false);
 
-            var data = buffer
-                .AsMemory(0, result.BytesRead)
-                .ToArray();
+            var data = buffer.AsMemory(0, result.BytesRead).ToArray();
 
-            return new TransportSmokeTestResult(
-                result.BytesRead,
-                data,
-                result.RemoteEndpoint,
-                DateTimeOffset.UtcNow);
+            return new TransportSmokeTestResult(result.BytesRead, data, result.RemoteEndpoint, DateTimeOffset.UtcNow);
         }
         catch (OperationCanceledException)
             when (timeoutCts.IsCancellationRequested)

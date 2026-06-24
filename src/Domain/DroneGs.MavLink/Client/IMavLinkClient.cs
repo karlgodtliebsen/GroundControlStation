@@ -1,4 +1,6 @@
-﻿using DroneGcs.Transport;
+﻿using System.Net;
+
+using DroneGcs.Transport;
 
 namespace DroneGs.MavLink.Client;
 
@@ -32,9 +34,10 @@ public interface IMavLinkClient : IAsyncDisposable
     /// Sends data to the MAVLink transport.
     /// </summary>
     /// <param name="data">The data to send.</param>
+    /// <param name="ipEndpoint">The IP endpoint to send the data to.</param>
     /// <param name="cancellationToken">A token to cancel the operation.</param>
     /// <exception cref="InvalidOperationException">Thrown if the transport is not connected.</exception>
-    ValueTask SendAsync(ReadOnlyMemory<byte> data, CancellationToken cancellationToken = default);
+    ValueTask SendAsync(ReadOnlyMemory<byte> data, IPEndPoint ipEndpoint, CancellationToken cancellationToken = default);
 
     /// <summary>
     /// Stops the MAVLink client and cancels any ongoing operations.

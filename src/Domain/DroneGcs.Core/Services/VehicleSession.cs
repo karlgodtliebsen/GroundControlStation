@@ -1,4 +1,6 @@
-﻿using DroneGcs.Core.DomainEvents;
+﻿using System.Net;
+
+using DroneGcs.Core.DomainEvents;
 using DroneGcs.Core.Models;
 
 using DroneGs.MavLink.Messages;
@@ -8,7 +10,7 @@ namespace DroneGcs.Core.Services;
 /// <summary>
 /// Represents a session for a vehicle, managing its state and handling updates.
 /// </summary>
-public class VehicleSession(VehicleState initialState)
+public class VehicleSession(VehicleState initialState, IPEndPoint ipEndPoint)
 {
     private VehicleState state = initialState;
     private const byte MavModeFlagSafetyArmed = 0b1000_0000;
@@ -22,6 +24,12 @@ public class VehicleSession(VehicleState initialState)
     /// Gets the current state of the vehicle.
     /// </summary>
     public VehicleState State => state;
+
+    /// <summary>
+    /// Gets the IP endpoint of the vehicle.
+    /// </summary>
+    public IPEndPoint IpEndPoint => ipEndPoint;
+
 
     /// <summary>
     /// Gets the notifications for the vehicle.

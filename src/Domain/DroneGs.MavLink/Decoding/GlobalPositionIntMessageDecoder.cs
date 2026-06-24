@@ -32,6 +32,7 @@ public sealed class GlobalPositionIntMessageDecoder : IMavLinkMessageDecoder
         message = new GlobalPositionIntMessage(
             frame.SystemId,
             frame.ComponentId,
+            frame.IPEndPoint,
             latRaw / 10_000_000.0,
             lonRaw / 10_000_000.0,
             altRaw / 1000.0,

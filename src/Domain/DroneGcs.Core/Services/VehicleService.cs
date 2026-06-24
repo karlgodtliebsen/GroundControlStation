@@ -45,7 +45,6 @@ public sealed class VehicleService(IVehicleRegistry registry, IVehicleCommandSer
     public async Task<VehicleCommandResponse> ArmAsync(VehicleId vehicleId, CancellationToken cancellationToken)
     {
         EnsureVehicleExists(vehicleId);
-
         var result = await commandService.ArmAsync(vehicleId, cancellationToken);
 
         if (result.Result == VehicleCommandResult.Accepted)
@@ -75,7 +74,6 @@ public sealed class VehicleService(IVehicleRegistry registry, IVehicleCommandSer
     public async Task<VehicleCommandResponse> SetModeAsync(VehicleId vehicleId, VehicleMode mode, CancellationToken cancellationToken)
     {
         EnsureVehicleExists(vehicleId);
-
         var result = await commandService.SetModeAsync(vehicleId, mode, cancellationToken);
         if (result.Result == VehicleCommandResult.Accepted)
         {

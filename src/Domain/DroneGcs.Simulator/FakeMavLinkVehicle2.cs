@@ -98,7 +98,7 @@ public sealed class FakeMavLinkVehicle2 : IAsyncDisposable
         {
             var result = await udpClient.ReceiveAsync(cancellationToken).ConfigureAwait(false);
 
-            var frames = frameParser.Parse(result.Buffer, DateTimeOffset.UtcNow);
+            var frames = frameParser.Parse(result.Buffer, new IPEndPoint(result.RemoteEndPoint.Address, result.RemoteEndPoint.Port), DateTimeOffset.UtcNow);
 
             foreach (var frame in frames)
             {
@@ -274,8 +274,7 @@ public sealed class FakeMavLinkVehicle2 : IAsyncDisposable
     {
         if (cancellationTokenSource is not null)
         {
-            await cancellationTokenSource.CancelAsync()
-                .ConfigureAwait(false);
+            await cancellationTokenSource.CancelAsync().ConfigureAwait(false);
 
             if (workerTask is not null)
             {

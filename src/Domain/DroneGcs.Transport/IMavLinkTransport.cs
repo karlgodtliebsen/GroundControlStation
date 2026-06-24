@@ -1,4 +1,6 @@
-﻿namespace DroneGcs.Transport;
+﻿using System.Net;
+
+namespace DroneGcs.Transport;
 
 /// <summary>
 /// Represents a MAVLink transport that can be used by a <see cref="MavLinkClient"/> to send and receive data.
@@ -34,7 +36,8 @@ public interface IMavLinkTransport : IAsyncDisposable
     /// Writes data to the transport.
     /// </summary>
     /// <param name="data">The data to write.</param>
+    /// <param name="ipEndpoint"></param>
     /// <param name="cancellationToken">A token to cancel the operation.</param>
     /// <returns>A <see cref="ValueTask"/> representing the asynchronous operation.</returns>
-    ValueTask WriteAsync(ReadOnlyMemory<byte> data, CancellationToken cancellationToken);
+    ValueTask WriteAsync(ReadOnlyMemory<byte> data, IPEndPoint ipEndpoint, CancellationToken cancellationToken);
 }

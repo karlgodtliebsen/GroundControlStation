@@ -1,4 +1,8 @@
-﻿using DroneGcs.Transport;
+﻿using System.Net;
+
+using Domain.Library.DateTime.Domain;
+
+using DroneGcs.Transport;
 
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
@@ -11,6 +15,7 @@ namespace DroneGs.MavLink.Client;
 public sealed class MavLinkClient : IMavLinkClient
 {
     private readonly IMavLinkTransport transport;
+    private readonly IDateTimeProvider dateTimeProvider;
     private readonly ILogger<MavLinkClient> logger;
     private readonly int receiveBufferSize;
 
@@ -38,12 +43,14 @@ public sealed class MavLinkClient : IMavLinkClient
     /// </summary>
     /// <param name="transport">The MAVLink transport to use for communication.</param>
     /// <param name="options">The options for configuring the MAVLink client.</param>
+    /// <param name="dateTimeProvider"></param>
     /// <param name="logger">The logger instance.</param>
     /// <exception cref="ArgumentNullException">Thrown if <paramref name="transport"/> is null.</exception>
     /// <exception cref="ArgumentOutOfRangeException">Thrown if <paramref name="options"/> is null or contains invalid values.</exception>
-    public MavLinkClient(IMavLinkTransport transport, IOptions<TransportEndpoint> options, ILogger<MavLinkClient> logger)
+    public MavLinkClient(IMavLinkTransport transport, IOptions<TransportEndpoint> options, IDateTimeProvider dateTimeProvider, ILogger<MavLinkClient> logger)
     {
         this.transport = transport ?? throw new ArgumentNullException(nameof(transport));
+        this.dateTimeProvider = dateTimeProvider;
         this.logger = logger;
         receiveBufferSize = options.Value.ReceiveBufferSize;
 
@@ -93,7 +100,7 @@ public sealed class MavLinkClient : IMavLinkClient
                 var copy = new byte[result.BytesRead];
                 buffer.AsMemory(0, result.BytesRead).CopyTo(copy);
 
-                var received = new MavLinkDataReceived(copy, result.RemoteEndpoint, DateTimeOffset.UtcNow);
+                var received = new MavLinkDataReceived(copy, result.RemoteEndpoint, dateTimeProvider.UtcNow);
 
                 var handler = DataReceived;
 
@@ -127,9 +134,10 @@ public sealed class MavLinkClient : IMavLinkClient
     /// Sends data to the MAVLink transport.
     /// </summary>
     /// <param name="data">The data to send.</param>
+    /// <param name="ipEndpoint">The IP endpoint to send the data to.</param>
     /// <param name="cancellationToken">A token to cancel the operation.</param>
     /// <exception cref="InvalidOperationException">Thrown if the transport is not connected.</exception>
-    public async ValueTask SendAsync(ReadOnlyMemory<byte> data, CancellationToken cancellationToken = default)
+    public async ValueTask SendAsync(ReadOnlyMemory<byte> data, IPEndPoint ipEndpoint, CancellationToken cancellationToken = default)
     {
         ThrowIfDisposed();
 
@@ -138,7 +146,7 @@ public sealed class MavLinkClient : IMavLinkClient
             throw new InvalidOperationException("Transport is not connected.");
         }
 
-        await transport.WriteAsync(data, cancellationToken).ConfigureAwait(false);
+        await transport.WriteAsync(data, ipEndpoint, cancellationToken).ConfigureAwait(false);
         logger.LogTrace("MavLinkClient - Sent {Bytes} bytes to MAVLink transport.", data.Length);
     }
 

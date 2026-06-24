@@ -20,7 +20,7 @@ public static class MavLinkTransportConfigurator
     {
         services.TryAddTransient<IMavLinkTransport, UdpMavLinkTransport>();
 
-        //TODO: must be based on  configuration data
+        //TODO: must be based on configuration data
         services.AddSingleton(Options.Create(new TransportEndpoint()));
 
         return services;
@@ -29,10 +29,13 @@ public static class MavLinkTransportConfigurator
     /// <summary>
     /// Configures and initializes MAVLink Transport services using the specified <see cref="IServiceProvider"/>.
     /// </summary>
-    /// <param name="services">The service provider used to resolve dependencies.</param>
+    /// <param name="serviceProvider">The service provider used to resolve dependencies.</param>
     /// <returns>The updated service provider.</returns>
-    public static IServiceProvider UseMavLinkTransportServices(this IServiceProvider services)
+    public static IServiceProvider UseMavLinkTransportServices(this IServiceProvider serviceProvider)
     {
-        return services;
+        //var factory = serviceProvider.GetRequiredService<IDomainFactory>();
+        //factory.Add<IMavLinkTransport, UdpMavLinkTransport>();
+
+        return serviceProvider;
     }
 }

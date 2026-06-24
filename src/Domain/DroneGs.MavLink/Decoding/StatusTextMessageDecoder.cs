@@ -58,6 +58,7 @@ public sealed class StatusTextMessageDecoder : IMavLinkMessageDecoder
         message = new StatusTextMessage(
             frame.SystemId,
             frame.ComponentId,
+            frame.IPEndPoint,
             severity,
             text,
             id,

@@ -1,4 +1,6 @@
-﻿using Domain.Library.EventHub.Abstractions;
+﻿using System.Net;
+
+using Domain.Library.EventHub.Abstractions;
 
 using DroneGcs.Transport;
 
@@ -54,26 +56,31 @@ public sealed class MavLinkConnection : IMavLinkConnection
     /// Sends raw MAVLink data through the connection.
     /// </summary>
     /// <param name="data">The raw MAVLink data to send.</param>
+    /// <param name="ipEndpoint"></param>
     /// <param name="cancellationToken">A cancellation token to cancel the operation.</param>
-    public async ValueTask SendRawAsync(ReadOnlyMemory<byte> data, CancellationToken cancellationToken = default)
+    public async ValueTask SendRawAsync(ReadOnlyMemory<byte> data, IPEndPoint ipEndpoint, CancellationToken cancellationToken = default)
     {
         logger.LogTrace("MavLinkConnection - Sending raw MAVLink data.");
-        await client.SendAsync(data, cancellationToken).ConfigureAwait(false);
+        await client.SendAsync(data, ipEndpoint, cancellationToken).ConfigureAwait(false);
     }
 
     private async Task OnDataReceivedAsync(MavLinkDataReceived received, CancellationToken cancellationToken)
     {
         logger.LogTrace("MavLinkConnection - Data received at {ReceivedAt}", received.ReceivedAt);
-        var parsedFrames = frameParser.Parse(received.Data.Span, received.ReceivedAt);
+        var parsedFrames = frameParser.Parse(received.Data.Span, received.RemoteEndpoint, received.ReceivedAt);
 
         foreach (var frame in parsedFrames)
         {
             logger.LogTrace("MavLinkConnection - Processing frame {frame}", frame.MessageId);
 
             await eventHub.PublishAsync(MavLinkEventTopics.ReceivedFrame, frame, cancellationToken);
+
             if (messageDecoder.TryDecode(frame, out var message) && message is not null)
             {
                 logger.LogTrace("MavLinkConnection - Writing Decoded Message { MessageType}", message.GetType().Name);
+
+                //IPEndPoint ipEndpoint,
+
                 await eventHub.PublishAsync(MavLinkEventTopics.ReceivedMessage, message, cancellationToken);
                 return;
             }

@@ -1,4 +1,6 @@
-﻿using Domain.Library.Configuration;
+﻿using System.Net;
+
+using Domain.Library.Configuration;
 using Domain.Library.EventHub;
 using Domain.Library.EventHub.Events;
 
@@ -102,6 +104,7 @@ public class TestOfDomainEventHub
 
         registry.RegisterOrUpdateHeartbeat(
             new VehicleId(1, 1),
+            new IPEndPoint(IPAddress.Any, 0),
             0,
             2,
             3,
@@ -110,9 +113,6 @@ public class TestOfDomainEventHub
             3,
             DateTimeOffset.UtcNow);
 
-        Assert.Contains(
-            eventHub.Events,
-            e => e is VehicleRegistered registered
-                 && registered.VehicleId == new VehicleId(1, 1));
+        Assert.Contains(eventHub.Events, e => e is VehicleRegistered registered && registered.VehicleId == new VehicleId(1, 1));
     }
 }

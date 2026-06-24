@@ -28,6 +28,7 @@ public sealed class AttitudeMessageDecoder : IMavLinkMessageDecoder
         message = new AttitudeMessage(
             frame.SystemId,
             frame.ComponentId,
+            frame.IPEndPoint,
             ReadSingle(span[4..8]),
             ReadSingle(span[8..12]),
             ReadSingle(span[12..16]),

@@ -1,4 +1,6 @@
-﻿using Domain.Library;
+﻿using System.Net;
+
+using Domain.Library;
 
 using DroneGcs.Core.Commands;
 using DroneGcs.Core.Models;
@@ -25,6 +27,7 @@ public class DomainVehicleServiceTests
 {
     private readonly ITestOutputHelper output;
     private readonly IServiceProvider serviceProvider;
+    private readonly IPEndPoint ipEndPoint;
 
     /// <summary>
     /// Initializes a new instance of the <see cref="DomainVehicleServiceTests"/> class.
@@ -38,6 +41,15 @@ public class DomainVehicleServiceTests
             .AddDefaultTestLogging(output);
         serviceProvider = services.BuildServiceProvider();
         serviceProvider.UseTestConfiguration();
+
+        var endPoint = serviceProvider.GetRequiredService<IOptions<TransportEndpoint>>().Value;
+        var localPort = endPoint.LocalPort;
+        var localHost = endPoint.LocalHost;
+        var localAddress = string.IsNullOrWhiteSpace(localHost)
+            ? IPAddress.Any
+            : IPAddress.Parse(localHost);
+
+        ipEndPoint = new IPEndPoint(localAddress, localPort);
     }
 
     /// <summary>
@@ -324,9 +336,9 @@ public class DomainVehicleServiceTests
 
         var vehicleId = new VehicleId(1, 1);
         var receivedAt = DateTimeOffset.UtcNow.AddSeconds(-10);
-
         var vehicle = registry.RegisterOrUpdateHeartbeat(
             vehicleId,
+            ipEndPoint,
             0,
             2,
             3,
@@ -350,11 +362,11 @@ public class DomainVehicleServiceTests
     {
         var registry = serviceProvider.GetRequiredService<IVehicleRegistry>();
         var vehicleService = serviceProvider.GetRequiredService<IVehicleService>();
-
         var vehicleId = new VehicleId(1, 1);
 
         registry.RegisterOrUpdateHeartbeat(
             vehicleId,
+            ipEndPoint,
             0,
             2,
             3,
